@@ -120,16 +120,6 @@ mvn spring-boot:run
 java -jar target/java-agent-platform-1.0.0.jar --spring.profiles.active=prod
 # 测试：mvn verify 由 surefire 自动激活 test profile
 ```
-
-## 学习路线
-
-| 阶段 | 天数 | 目标 | 产出 |
-|------|------|------|------|
-| 阶段一 | Day 1-3 | Python 建立 Agent 直觉 | 多功能 Agent |
-| 阶段二 | Day 4-8 | Java 工程化重构 | 多用户客服服务 |
-| 阶段三 | Day 9-14 | 多 Agent 协作 | 智能客服团队 |
-| 阶段四 | Day 15-21 | 生产级部署 | 可部署的企业服务 |
-
 ## 技术栈
 
 - **LLM**: LM Studio（本地 Qwen2.5/Llama）
