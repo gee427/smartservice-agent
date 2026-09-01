@@ -114,7 +114,9 @@
     }
 
     // 流式 token：payload 为 null 时是后端推送的纯文本片段（如"北京"/"今天"/"天气"）
-    if (payload !== null) return;        // 其他结构化消息（暂未使用）忽略
+    // 注意：JSON.parse('15') 会成功返回 number（不抛错），纯数字 token 也必须按纯文本渲染
+    // 只有 JSON 对象（typeof === 'object'）才算结构化消息，number/string/boolean 均不拦截
+    if (payload !== null && typeof payload === 'object') return;
     if (data === '[DONE]') return;
 
     bubble.textContent += data;

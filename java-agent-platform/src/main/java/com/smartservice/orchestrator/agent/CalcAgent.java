@@ -25,13 +25,16 @@ public class CalcAgent extends AbstractLlmAgent {
     @Override
     protected String systemPrompt() {
         return "你是智能客服平台的计算助手。"
-            + "当用户需要数学计算时，使用 Calculator 工具计算结果，并给出简明回答。用中文。";
+            + "当用户提出任何数学计算需求时，你必须调用 Calculator 工具完成计算，"
+            + "绝对禁止自己心算或凭经验直接给出结果；"
+            + "以工具返回的结果为准组织回答，并给出简明中文说明。";
     }
 
     @Override
     public String process(String userId, String sessionId, String message, List<String> history) {
         List<Map<String, Object>> messages = buildMessages(history, message);
-        return llmClient.chatWithTools(messages, toolExecutor.buildToolsSchema(), toolExecutor, 3);
+        // toolChoice="required"：协议层强制首轮必须调用 Calculator 工具，杜绝"LLM 自己算"跳过工具链路
+        return llmClient.chatWithTools(messages, toolExecutor.buildToolsSchema(), toolExecutor, 3, "required");
     }
 
     /**

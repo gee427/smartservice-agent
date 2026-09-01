@@ -37,9 +37,12 @@ public class LlmClient {
     /**
      * RestTemplate 显式配置超时：LLM 服务无响应时必须快速失败，而不是无限挂起
      * fast：意图分类等低延迟场景（5s）；默认：对话生成（20s）
+     * tool：工具调用链路专用（60s）——qwen3vl 等 reasoning 模型拿到工具结果后
+     *      需要"思考"再组织回答，生成耗时明显长于普通对话，20s 会误报超时
      */
     private final RestTemplate restTemplate = createRestTemplate(20_000);
     private final RestTemplate fastRestTemplate = createRestTemplate(5_000);
+    private final RestTemplate toolRestTemplate = createRestTemplate(60_000);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static RestTemplate createRestTemplate(int readTimeout) {
@@ -71,7 +74,7 @@ public class LlmClient {
 
     private String chat(List<Map<String, Object>> messages, double temperature,
                         int maxTokens, RestTemplate client) {
-        Map<String, Object> resp = callRaw(messages, temperature, maxTokens, null, client);
+        Map<String, Object> resp = callRaw(messages, temperature, maxTokens, null, null, client);
         if (resp == null) {
             return "抱歉，LLM 调用失败，请稍后重试。";
         }
@@ -86,9 +89,27 @@ public class LlmClient {
                                 List<Map<String, Object>> tools,
                                 ToolExecutor toolExecutor,
                                 int maxIterations) {
+        return chatWithTools(messages, tools, toolExecutor, maxIterations, null);
+    }
+
+    /**
+     * 带工具调用，支持强制首轮必须调用工具（toolChoice="required"）
+     * 用于计算/天气等"必须走工具链路"的 Agent：LLM 自己心算/编造结果会跳过工具调用，
+     * 协议层强制 tool_choice 后，模型第一轮必须返回 tool_calls，杜绝"自己算"路径。
+     */
+    public String chatWithTools(List<Map<String, Object>> messages,
+                                List<Map<String, Object>> tools,
+                                ToolExecutor toolExecutor,
+                                int maxIterations,
+                                String toolChoice) {
         List<Map<String, Object>> working = new ArrayList<>(messages);
         for (int iteration = 0; iteration < maxIterations; iteration++) {
-            Map<String, Object> resp = callRaw(working, 0.3, 2000, tools, restTemplate);
+            // 强制 tool_choice 只在第一轮生效！
+            // 实测（qwen3vl + LM Studio）：拿到工具结果后的轮次若仍带 tool_choice="required"，
+            // 模型会被强迫"必须再调用一次工具"，陷入矛盾直接卡死（>75s 无响应）。
+            // 后续轮次改回默认(auto)，模型才能正常基于工具结果组织最终回答。
+            String effectiveToolChoice = (iteration == 0) ? toolChoice : null;
+            Map<String, Object> resp = callRaw(working, 0.3, 2000, tools, effectiveToolChoice, toolRestTemplate);
             if (resp == null) {
                 return "抱歉，LLM 调用失败，请稍后重试。";
             }
@@ -234,6 +255,7 @@ public class LlmClient {
                                         double temperature,
                                         int maxTokens,
                                         List<Map<String, Object>> tools,
+                                        String toolChoice,
                                         RestTemplate client) {
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -246,6 +268,9 @@ public class LlmClient {
             requestBody.put("max_tokens", maxTokens);
             if (tools != null) {
                 requestBody.put("tools", tools);
+                if (toolChoice != null) {
+                    requestBody.put("tool_choice", toolChoice);
+                }
             }
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
