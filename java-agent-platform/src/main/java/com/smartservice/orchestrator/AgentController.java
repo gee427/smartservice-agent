@@ -5,6 +5,8 @@ import com.smartservice.api.BusinessException;
 import com.smartservice.memory.SessionManager;
 import com.smartservice.memory.SessionTracker;
 import com.smartservice.metrics.AgentMetrics;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +23,7 @@ import java.util.concurrent.Executor;
  * Day 9-10 + P0-1/P0-4 + P1-1/P1-2: 平台 REST API
  * 多 Agent 协作入口：Redis 会话持久化 + 统一响应体 + SSE 流式输出 + 会话索引
  */
+@Tag(name = "对话", description = "多 Agent 对话：普通 / SSE 流式 / 会话管理（P0-P1）")
 @Slf4j
 @RestController
 @RequestMapping("/api/agent")
@@ -35,6 +38,7 @@ public class AgentController {
 
     private static final long SSE_TIMEOUT_MS = 120_000L;
 
+    @Operation(summary = "普通对话", description = "路由到 7 类业务 Agent 返回完整回复；同一 IP 每分钟限 10 次")
     @PostMapping("/chat")
     public ApiResponse<ChatResponse> chat(@Valid @RequestBody ChatRequest request) {
         String sessionId = request.sessionId() != null ? request.sessionId() :
@@ -63,6 +67,7 @@ public class AgentController {
      * P1-1: SSE 流式对话
      * 返回 text/event-stream，逐块推送 AI 回复，前端打字机渲染
      */
+    @Operation(summary = "SSE 流式对话", description = "text/event-stream 逐块推送，末尾 done 事件回传 intent；同一 IP 每分钟限 10 次")
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStream(@Valid @RequestBody ChatRequest request) {
         String sessionId = request.sessionId() != null ? request.sessionId() :

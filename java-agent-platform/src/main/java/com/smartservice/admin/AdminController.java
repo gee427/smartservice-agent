@@ -9,6 +9,9 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -21,6 +24,8 @@ import java.util.concurrent.TimeUnit;
  * P1-2: 管理后台 API
  * 运营视图：会话列表、指标统计、Agent 状态、服务健康
  */
+@Tag(name = "管理后台", description = "运营视图：会话 / 指标 / Agent / 健康（P1-2，需 JWT）")
+@SecurityRequirement(name = "bearer-jwt")
 @Slf4j
 @RestController
 @RequestMapping("/api/admin")
@@ -37,6 +42,7 @@ public class AdminController {
     /**
      * 会话列表（按最后活动倒序）
      */
+    @Operation(summary = "会话列表", description = "Redis 会话索引，按最后活动倒序，limit 上限 200")
     @GetMapping("/sessions")
     public ApiResponse<List<Map<String, Object>>> sessions(
             @RequestParam(defaultValue = "50") int limit) {
@@ -55,6 +61,7 @@ public class AdminController {
     /**
      * 平台指标（从 Micrometer 读取）
      */
+    @Operation(summary = "平台指标", description = "请求数 / Token / 平均延迟 / 活跃会话 / 意图分布（实时读 Micrometer）")
     @GetMapping("/metrics")
     public ApiResponse<Map<String, Object>> metrics() {
         Map<String, Object> m = new LinkedHashMap<>();
@@ -101,6 +108,7 @@ public class AdminController {
     /**
      * 服务健康：平台 / Redis / LLM
      */
+    @Operation(summary = "三层健康检查", description = "platform / redis / llm 状态，同时刷新 agent_redis_up / agent_llm_up 监控 gauge")
     @GetMapping("/health")
     public ApiResponse<Map<String, Object>> health() {
         Map<String, Object> m = new LinkedHashMap<>();

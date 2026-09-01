@@ -171,3 +171,35 @@ Content-Type: application/json
   "sessionId": "sess_002",
   "message": "你好"
 }
+
+### ======== P1-1 SSE 流式 + P3-3 健康 + P3-4 指标 + P3-5 文档 ========
+
+### 25. SSE 流式对话（text/event-stream，末尾 done 事件回传 intent）
+POST http://localhost:8080/api/agent/chat/stream
+Content-Type: application/json
+
+{
+  "userId": "user_002",
+  "sessionId": "sess_002",
+  "message": "你们支持退货吗"
+}
+
+### 26. 统一健康探针（P3-3，免认证，含 redis/llm 组件；LLM 挂时整体 503）
+GET http://localhost:8080/actuator/health
+
+### 27. Prometheus 指标（P3-4，agent_* 全部业务指标）
+GET http://localhost:8080/actuator/prometheus
+
+### 28. 管理后台-会话列表（需 token，P1-2）
+GET http://localhost:8080/api/admin/sessions
+Authorization: Bearer <TOKEN>
+
+### 29. 管理后台-平台指标（需 token，P1-2）
+GET http://localhost:8080/api/admin/metrics
+Authorization: Bearer <TOKEN>
+
+### 30. Swagger UI（P3-5，浏览器访问体验最佳）
+GET http://localhost:8080/swagger-ui/index.html
+
+### 31. OpenAPI JSON（P3-5）
+GET http://localhost:8080/v3/api-docs

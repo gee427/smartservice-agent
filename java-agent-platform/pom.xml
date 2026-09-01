@@ -99,6 +99,13 @@
             <version>0.4.8</version>
         </dependency>
 
+        <!-- P3-5: OpenAPI 文档（Swagger UI，兼容 Spring Boot 3.2.x） -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.5.0</version>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

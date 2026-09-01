@@ -84,6 +84,13 @@ cd java-agent-core
 mvn spring-boot:run
 ```
 
+### 5. 访问入口（platform 8080）
+- 聊天端：http://localhost:8080/
+- 管理后台：http://localhost:8080/admin.html（注册/登录后使用）
+- **Swagger API 文档（P3-5）**：http://localhost:8080/swagger-ui/index.html
+- 健康探针（P3-3）：http://localhost:8080/actuator/health
+- Prometheus 指标（P3-4）：http://localhost:8080/actuator/prometheus
+
 ## 学习路线
 
 | 阶段 | 天数 | 目标 | 产出 |
@@ -97,5 +104,6 @@ mvn spring-boot:run
 
 - **LLM**: LM Studio（本地 Qwen2.5/Llama）
 - **Python**: LangChain, OpenAI SDK, Chroma
-- **Java**: Spring Boot, Spring AI, Redis
+- **Java**: Spring Boot, Spring AI, Redis, springdoc-openapi（Swagger）
 - **部署**: Docker, Docker Compose, GitHub Actions（CI/CD：测试 + 覆盖率 + GHCR 镜像）
+- **运维**: Actuator + Micrometer/Prometheus（P3-4），logback 滚动日志（P3-3），健康告警脚本
