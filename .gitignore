@@ -27,3 +27,6 @@ Thumbs.db
 
 # Redis 运行时数据
 dump.rdb
+
+# 运行时日志（logback 滚动输出）
+java-agent-platform/logs/

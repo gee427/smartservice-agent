@@ -35,11 +35,15 @@ SmartService-Agent/
 │   │   ├── metrics/           # 监控指标
 │   │   └── config/            # 配置类
 │   ├── src/main/resources/
-│   │   └── application.yml
+│   │   ├── application.yml      # 配置文件
+│   │   └── logback-spring.xml   # P3-3 日志：按日期+大小轮转，保留 7 天
 │   ├── src/test/java/         # 单元测试
 │   ├── Dockerfile             # 容器化
 │   ├── docker-compose.yml     # 服务编排
 │   └── pom.xml
+│
+├── scripts/
+│   └── health-check.sh        # P3-3 健康告警：/actuator/health 三层探针，退出码 0/1/2/3
 │
 ├── .github/workflows/
 │   └── ci.yml                 # GitHub Actions CI/CD

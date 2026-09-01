@@ -122,7 +122,63 @@ docker run -d --name agent-platform -p 8080:8080 \
 
 > 首次推送后，镜像默认是**私有**的。需登录 GitHub → 仓库 → Packages → 该包 → Package settings → 把 visibility 改为 Public，才能被其他人/服务器匿名拉取。
 
-## 6. 国内镜像加速（可选，构建慢时）
+## 6. 日志与告警（P3-3）
+
+### 6.1 日志配置
+
+`java-agent-platform/src/main/resources/logback-spring.xml`（Spring Boot 自动识别，无需额外依赖）：
+
+| 项 | 策略 |
+|---|---|
+| 控制台 | 本地开发，时间/级别/线程/logger 彩色输出 |
+| 文件 | `logs/agent-platform.log`（可用环境变量 `LOG_PATH` 覆盖），按**日期 + 大小**轮转（每天每文件 ≤10MB），保留 **7 天**，总量上限 1GB，历史文件自动 gzip |
+| 级别 | root INFO（改 `LOG_LEVEL` 或 logback 内调整） |
+
+生产建议：将 `LOG_PATH` 指向持久化磁盘，配合 filebeat/vector 采集到 ELK 或 Loki；`agent.*.log.gz` 归档策略按合规要求调整。
+
+### 6.2 统一健康探针
+
+`LlmHealthIndicator`（metrics 包）将 LLM 状态挂载到 Spring Boot 标准健康端点，与 Redis 组件并列：
+
+```bash
+curl http://localhost:8080/actuator/health
+# → {"status":"DOWN","components":{ "redis":{"status":"UP",...}, "llm":{"status":"DOWN","details":{"model":"...","reason":"LM Studio unreachable or model unloaded"}}, ... }}
+```
+
+- 该端点**无需 JWT**，专供监控探针/K8s liveness/负载均衡探测使用。
+- LLM 挂时整体 `status=DOWN`，HTTP 映射 **503**；引擎恢复后自动回 UP（`LlmClient.isAvailable()` 内置最小 chat 探测 + 30s 结果缓存，轮询不拖慢）。
+
+### 6.3 告警脚本
+
+`scripts/health-check.sh`（Git Bash / Linux 通用，零依赖：curl + python）：
+
+```bash
+./health-check.sh                          # 默认 http://localhost:8080
+./health-check.sh --url http://host:8080   # 指定地址
+```
+
+退出码分级（供定时任务判断）：
+
+| 退出码 | 含义 | 处置建议 |
+|---|---|---|
+| 0 | 全部 UP | 正常 |
+| 1 | Redis / 平台 DOWN | 严重，立即处理 |
+| 2 | 仅 LLM DOWN | 服务可降级运行（FAQ 直查），重载 LM Studio 模型 |
+| 3 | 服务不可达 | 检查进程/网络 |
+
+定时执行示例：
+
+```bash
+# Linux cron：每 5 分钟检查，异常时调用通知脚本
+*/5 * * * * /opt/smartservice/scripts/health-check.sh || /opt/smartservice/scripts/notify.sh
+
+# Windows：任务计划程序 → 新建任务 → 操作 = 程序 "C:\Program Files\Git\bin\bash.exe"
+#   参数 = -lc "/e/SmartService-Agent/scripts/health-check.sh"
+```
+
+通知渠道示例（企业微信机器人，异常时 POST）：`curl -s -X POST 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx' -H 'Content-Type: application/json' -d '{"msgtype":"text","text":{"content":"SmartService 健康告警"}}'`
+
+## 7. 国内镜像加速（可选，构建慢时）
 
 Docker 拉取基础镜像慢/失败时，配置镜像加速器。Docker Desktop：
 Settings → Docker Engine，编辑 `daemon.json`：
@@ -139,7 +195,7 @@ Settings → Docker Engine，编辑 `daemon.json`：
 
 保存并 Restart。之后 `docker compose up -d --build` 即可。
 
-## 7. 生产配置注意事项
+## 8. 生产配置注意事项
 
 | 项 | 本地默认 | 生产建议 |
 |---|---|---|
@@ -149,7 +205,7 @@ Settings → Docker Engine，编辑 `daemon.json`：
 | 限流阈值 | chat 10/min, login 5/min | 按业务压测调整 |
 | 可观测性 | Actuator 本地 | Prometheus 抓取 `/actuator/prometheus` |
 
-## 8. 常见问题
+## 9. 常见问题
 
 - **管理后台显示 llm: DOWN**：LM Studio 引擎未加载模型（`/models` 有响应但 `/chat/completions` 挂起）。在 LM Studio 中重新加载模型。
 - **容器内连不上 LM Studio**：确认宿主机 LM Studio 在运行；Linux 下 `extra_hosts: host.docker.internal:host-gateway` 已配置。
