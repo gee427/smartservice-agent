@@ -120,6 +120,33 @@ mvn spring-boot:run
 java -jar target/java-agent-platform-1.0.0.jar --spring.profiles.active=prod
 # 测试：mvn verify 由 surefire 自动激活 test profile
 ```
+
+## 日常开发与代码更新（Git 工作流）
+
+### 首次推送（一次性配置）
+1. GitHub 网页新建**空仓库**（不要勾选 README / .gitignore / license，本地已有）
+2. 配置远端并推送：
+```bash
+git remote add origin https://github.com/gee427/smartservice-agent.git
+git push -u origin main
+```
+3. ⚠️ GitHub 已于 2021 年禁用密码认证，推送必须用 **Personal Access Token（PAT）**：
+   - 生成：GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+   - 权限（Scopes）勾选 `repo` + `workflow`
+   - 首次用 `git credential approve` 将 token 存入 Windows 凭据库后，**后续推送永久免密**
+   - ⚠️ token 视同密码：不要提交进代码/仓库/聊天记录；泄漏后立即到 GitHub 页面 Revoke
+
+### 日常更新（每次改完代码执行这四步）
+```bash
+git add .                        # ① 暂存所有改动
+git commit -m "描述改动原因"      # ② 生成提交快照（写"为什么"而非"改了什么"）
+git pull --rebase                # ③ 先同步远端（网页/他人改动），避免推送冲突
+git push                         # ④ 推送上线，CI 自动开始检查
+```
+> ⚠️ **先 pull 再 push，顺序不能反**——若远端已有新提交而先 push，会被拒绝。
+> 推送后 GitHub Actions 自动运行：Java 编译 + 35 测试 + Checkstyle 质量门禁 + 覆盖率 + Docker 镜像构建。
+> 查看结果：https://github.com/gee427/smartservice-agent/actions （红叉请查看失败 job 日志排查）
+
 ## 技术栈
 
 - **LLM**: LM Studio（本地 Qwen2.5/Llama）
