@@ -48,7 +48,7 @@ public class ToolRegistry {
 
     private String calculate(String expression) {
         try {
-            javax.script.ScriptEngine engine = 
+            javax.script.ScriptEngine engine =
                 new javax.script.ScriptEngineManager().getEngineByName("JavaScript");
             Object result = engine.eval(expression);
             return "计算结果：" + result;
@@ -57,6 +57,8 @@ public class ToolRegistry {
         }
     }
 
-    public record ToolDefinition(String name, String description, 
-                                  Function<String, String> executor) {}
+    public record ToolDefinition(String name, String description,
+                                  Function<String, String> executor) {
+        // 工具定义
+    }
 }

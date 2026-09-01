@@ -72,7 +72,9 @@ public class ToolExecutor {
     // ========== 工具实现 ==========
 
     public String getWeather(String city) {
-        if (city == null || city.isBlank()) return "请提供城市名。";
+        if (city == null || city.isBlank()) {
+            return "请提供城市名。";
+        }
         Map<String, String> data = Map.of(
             "北京", "晴，25°C，北风2级",
             "上海", "多云，28°C，东南风3级",
@@ -84,7 +86,9 @@ public class ToolExecutor {
     }
 
     public String calculate(String expression) {
-        if (expression == null || expression.isBlank()) return "请提供数学表达式。";
+        if (expression == null || expression.isBlank()) {
+            return "请提供数学表达式。";
+        }
         // 白名单校验：只允许数字、四则运算、括号、小数点、取模
         if (!expression.matches("[0-9+\\-*/().%\\s]+")) {
             return "表达式包含非法字符：" + expression;

@@ -1,0 +1,22 @@
+# =====================================================================
+# P4-1: 测试环境（mvn verify 由 surefire 自动激活，无需手动指定）
+# 使用本机真实 Redis（集成测试依赖）；JWT 用固定测试密钥保证可复现
+# =====================================================================
+spring:
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+
+agent:
+  llm:
+    base-url: http://localhost:1234/v1
+    model: qwen3vl-8b-uncensored-hauhaucs-aggressive
+    temperature: 0.7
+    max-tokens: 2000
+  jwt:
+    secret: smartservice-agent-test-secret-key-0000000000000000000000000000
+    expire-hours: 24
+  rate-limit:
+    # 测试环境保持默认阈值（10/5 次每分），限流用例依赖真实计数
+    enabled: true

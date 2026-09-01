@@ -1,0 +1,41 @@
+# =====================================================================
+# P4-1: 生产环境
+# 所有敏感/环境相关配置一律通过环境变量注入（12-Factor 规范）：
+#   export REDIS_HOST=... REDIS_PORT=6379 REDIS_PASSWORD=...
+#   export LLM_BASE_URL=... LLM_MODEL=... LLM_TEMPERATURE=0.7 LLM_MAX_TOKENS=2000
+#   export JWT_SECRET=<至少32字节随机串> JWT_EXPIRE_HOURS=24
+#   export CORS_ALLOWED_ORIGINS=https://admin.example.com
+# 启动：java -jar java-agent-platform-1.0.0.jar --spring.profiles.active=prod
+# =====================================================================
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: ${REDIS_TIMEOUT:2000ms}
+    lettuce:
+      pool:
+        max-active: ${REDIS_POOL_MAX:16}
+        max-idle: ${REDIS_POOL_IDLE:8}
+        min-idle: ${REDIS_POOL_MIN:4}
+
+agent:
+  llm:
+    base-url: ${LLM_BASE_URL}
+    model: ${LLM_MODEL}
+    temperature: ${LLM_TEMPERATURE:0.7}
+    max-tokens: ${LLM_MAX_TOKENS:2000}
+  jwt:
+    # 生产必须显式注入，缺失则启动失败（防止默认密钥裸奔）
+    secret: ${JWT_SECRET}
+    expire-hours: ${JWT_EXPIRE_HOURS:24}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    chat-per-minute: ${RATE_LIMIT_CHAT:10}
+    login-per-minute: ${RATE_LIMIT_LOGIN:5}
+  cors:
+    # 生产环境 CORS 白名单，逗号分隔（P4-2）
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:https://example.com}

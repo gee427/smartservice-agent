@@ -14,12 +14,12 @@ import java.util.*;
 public class ReturnProcessWorkflow {
 
     public enum State {
-        INIT, ELIGIBILITY_CHECK, REASON_COLLECT, 
+        INIT, ELIGIBILITY_CHECK, REASON_COLLECT,
         SOLUTION_OFFER, CONFIRMATION, COMPLETED, CANCELLED
     }
 
     public enum Event {
-        START, PASS, REJECT, PROVIDE_REASON, 
+        START, PASS, REJECT, PROVIDE_REASON,
         ACCEPT, DECLINE, CONFIRM, CANCEL
     }
 

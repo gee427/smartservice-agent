@@ -153,10 +153,14 @@ public class ChatController {
                 String result;
                 try {
                     if ("Weather".equals(toolName)) {
-                        Map<String, String> args = objectMapper.readValue(argsStr, new TypeReference<Map<String, String>>() {});
+                        Map<String, String> args = objectMapper.readValue(argsStr, new TypeReference<Map<String, String>>() {
+                            // 匿名子类：仅用于类型信息
+                        });
                         result = toolRegistry.execute("Weather", args.get("city"));
                     } else if ("Calculator".equals(toolName)) {
-                        Map<String, String> args = objectMapper.readValue(argsStr, new TypeReference<Map<String, String>>() {});
+                        Map<String, String> args = objectMapper.readValue(argsStr, new TypeReference<Map<String, String>>() {
+                            // 匿名子类：仅用于类型信息
+                        });
                         result = toolRegistry.execute("Calculator", args.get("expression"));
                     } else {
                         result = "未知工具：" + toolName;
@@ -215,7 +219,9 @@ public class ChatController {
             }
 
             Map<String, Object> msg = (Map<String, Object>) choices.get(0).get("message");
-            if (msg == null) return null;
+            if (msg == null) {
+                return null;
+            }
 
             Map<String, Object> result = new HashMap<>();
             result.put("content", msg.get("content"));
@@ -230,6 +236,11 @@ public class ChatController {
 
     // ========== DTOs ==========
 
-    public record ChatRequest(String userId, String sessionId, String message) {}
-    public record ChatResponse(String sessionId, String content, String status) {}
+    public record ChatRequest(String userId, String sessionId, String message) {
+        // 聊天请求体
+    }
+
+    public record ChatResponse(String sessionId, String content, String status) {
+        // 聊天响应体
+    }
 }

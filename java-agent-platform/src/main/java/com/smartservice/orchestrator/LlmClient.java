@@ -72,7 +72,9 @@ public class LlmClient {
     private String chat(List<Map<String, Object>> messages, double temperature,
                         int maxTokens, RestTemplate client) {
         Map<String, Object> resp = callRaw(messages, temperature, maxTokens, null, client);
-        if (resp == null) return "抱歉，LLM 调用失败，请稍后重试。";
+        if (resp == null) {
+            return "抱歉，LLM 调用失败，请稍后重试。";
+        }
         String content = (String) resp.get("content");
         return content != null ? content : "（模型返回空）";
     }
@@ -87,7 +89,9 @@ public class LlmClient {
         List<Map<String, Object>> working = new ArrayList<>(messages);
         for (int iteration = 0; iteration < maxIterations; iteration++) {
             Map<String, Object> resp = callRaw(working, 0.3, 2000, tools, restTemplate);
-            if (resp == null) return "抱歉，LLM 调用失败，请稍后重试。";
+            if (resp == null) {
+                return "抱歉，LLM 调用失败，请稍后重试。";
+            }
 
             String content = (String) resp.get("content");
             List<Map<String, Object>> toolCalls = (List<Map<String, Object>>) resp.get("tool_calls");
@@ -160,9 +164,13 @@ public class LlmClient {
                 new InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                if (!line.startsWith("data:")) continue;
+                if (!line.startsWith("data:")) {
+                    continue;
+                }
                 String data = line.substring(5).trim();
-                if (data.isEmpty() || data.equals("[DONE]")) break;
+                if (data.isEmpty() || data.equals("[DONE]")) {
+                    break;
+                }
                 JsonNode node = objectMapper.readTree(data);
                 JsonNode delta = node.path("choices").get(0).path("delta").path("content");
                 if (!delta.isMissingNode() && !delta.isNull() && !delta.asText().isEmpty()) {
@@ -246,13 +254,19 @@ public class LlmClient {
             );
 
             Map<String, Object> body = rawResponse.getBody();
-            if (body == null || !body.containsKey("choices")) return null;
+            if (body == null || !body.containsKey("choices")) {
+                return null;
+            }
 
             List<Map<String, Object>> choices = (List<Map<String, Object>>) body.get("choices");
-            if (choices.isEmpty()) return null;
+            if (choices.isEmpty()) {
+                return null;
+            }
 
             Map<String, Object> msg = (Map<String, Object>) choices.get(0).get("message");
-            if (msg == null) return null;
+            if (msg == null) {
+                return null;
+            }
 
             Map<String, Object> result = new HashMap<>();
             result.put("content", msg.get("content"));

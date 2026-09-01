@@ -1,0 +1,28 @@
+# =====================================================================
+# P4-1: 开发环境（默认 profile）
+# 本地开发：LM Studio(localhost:1234) + 本机 Redis + 演示 JWT 密钥
+# =====================================================================
+server:
+  port: 8080
+
+spring:
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 16
+        max-idle: 8
+        min-idle: 4
+
+agent:
+  llm:
+    base-url: http://localhost:1234/v1
+    model: qwen3vl-8b-uncensored-hauhaucs-aggressive
+    temperature: 0.7
+    max-tokens: 2000
+  jwt:
+    # 演示密钥（仅开发环境）；生产环境务必由环境变量注入
+    secret: smartservice-agent-demo-secret-key-please-change-in-prod-2026
+    expire-hours: 24

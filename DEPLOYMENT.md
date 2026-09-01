@@ -1,6 +1,6 @@
 # SmartService Agent 部署指南
 
-> P3-1：容器化部署；P3-2：GitHub Actions CI/CD；P3-3：日志与告警；P3-4：Prometheus 监控对接。本文档覆盖本地开发部署、Docker 生产部署、持续集成与监控告警。
+> P3-1：容器化部署；P3-2：GitHub Actions CI/CD；P3-3：日志与告警；P3-4：Prometheus 监控对接；P4：多环境 / 质量门禁 / 审计 / 协作规范。本文档覆盖本地开发部署、Docker 生产部署、持续集成与监控告警。
 
 ## 1. 架构与端口
 
@@ -259,7 +259,33 @@ Settings → Docker Engine，编辑 `daemon.json`：
 | 限流阈值 | chat 10/min, login 5/min | 按业务压测调整 |
 | 可观测性 | Actuator 本地 | Prometheus 抓取 `/actuator/prometheus` |
 
-## 10. 常见问题
+## 10. 多环境配置与质量门禁（P4）
+
+### 10.1 多环境（P4-1）
+配置拆分：`application.yml`（公共）+ `application-dev.yml` / `application-test.yml` / `application-prod.yml`。
+
+| 环境 | 激活方式 | 要点 |
+|---|---|---|
+| dev | 默认（`spring.profiles.default: dev`） | LM Studio + 本机 Redis + 演示 JWT |
+| test | `mvn verify` 自动（surefire 注入） | 集成测试用真实 Redis |
+| prod | `--spring.profiles.active=prod` | **全部环境变量注入**：REDIS_HOST / JWT_SECRET / LLM_BASE_URL 等，JWT_SECRET 缺失直接启动失败 |
+
+### 10.2 代码质量门禁（P4-3）
+- `config/checkstyle.xml`：Tab/行尾空白/行长 160/无用 import/大括号/空白规范（空块例外已声明）。
+- 接入 `maven-checkstyle-plugin`（verify 阶段，违规即 BUILD FAILURE），**core 与 platform 均生效**。
+- 本地验证：`mvn verify` 或 `mvn checkstyle:check`（违规明细在 `target/checkstyle-result.xml`）。
+
+### 10.3 审计日志（P4-4）
+- 敏感操作（注册/登录成功·失败/删除会话）记录到 `logs/audit.log`（独立 appender，保留 90 天）。
+- 格式：`action=... user=... ip=... result=ok|fail detail=...`，支持 grep 检索与合规追溯。
+- 扩展：在业务代码注入 `AuditLogger` 后调用 `auditLogger.success/failure(...)` 即可。
+
+### 10.4 协作规范（P4-2）
+- `.editorconfig`：统一缩进/换行/编码（配合 `.gitattributes` LF）。
+- Dependabot：Maven 与 GitHub Actions 每周一自动检查更新（`.github/dependabot.yml`）。
+- PR/Issue 模板：`.github/PULL_REQUEST_TEMPLATE.md`、`.github/ISSUE_TEMPLATE/`。
+
+## 11. 常见问题
 
 - **管理后台显示 llm: DOWN**：LM Studio 引擎未加载模型（`/models` 有响应但 `/chat/completions` 挂起）。在 LM Studio 中重新加载模型。
 - **容器内连不上 LM Studio**：确认宿主机 LM Studio 在运行；Linux 下 `extra_hosts: host.docker.internal:host-gateway` 已配置。

@@ -4,10 +4,11 @@
 #
 # 探测 /actuator/health（无需认证），一次调用获取三层状态：
 #   components.redis / components.llm / 整体 status
+# 注意：P3-6 起监控端点独立端口 9090（management.server.port），默认探测 9090
 #
 # 用法:
-#   ./health-check.sh                       # 默认 http://localhost:8080
-#   ./health-check.sh --url http://host:8080
+#   ./health-check.sh                       # 默认 http://localhost:9090
+#   ./health-check.sh --url http://host:9090
 #
 # 退出码（供 cron / 任务计划程序 / CI 判断）:
 #   0 = 全部 UP
@@ -21,7 +22,7 @@
 # =====================================================================
 set -euo pipefail
 
-BASE_URL="http://localhost:8080"
+BASE_URL="http://localhost:9090"
 [[ "${1:-}" == "--url" && $# -ge 2 ]] && BASE_URL="$2"
 
 HEALTH_URL="$BASE_URL/actuator/health"

@@ -1,0 +1,41 @@
+# P4-2: Dependabot 依赖自动更新（商用安全实践）
+# - Maven: 每周一检查 java 依赖（pom.xml）
+# - GitHub Actions: 每周一检查 CI 工作流依赖
+# 安全漏洞（Dependabot security alerts）不在此配置内，GitHub 自动扫描
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/java-agent-platform"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "maven"
+
+  - package-ecosystem: "maven"
+    directory: "/java-agent-core"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "maven"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "ci"

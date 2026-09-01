@@ -2,6 +2,7 @@ package com.smartservice.security;
 
 import com.smartservice.api.ApiResponse;
 import com.smartservice.api.BusinessException;
+import com.smartservice.audit.AuditLogger;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -10,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * P2-1: 用户认证服务
@@ -25,6 +25,7 @@ public class AuthService {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final JwtUtil jwtUtil;
+    private final AuditLogger auditLogger;
 
     private static final String USER_KEY_PREFIX = "agent:user:";
     private static final BCryptPasswordEncoder ENCODER = new BCryptPasswordEncoder();
@@ -35,9 +36,11 @@ public class AuthService {
      * 用户名/密码格式由 Controller 层 @Valid 校验（P2-2），此处只查重
      */
     public Map<String, String> register(String username, String password) {
+        long start = System.currentTimeMillis();
         String key = USER_KEY_PREFIX + username;
         Boolean exists = redisTemplate.hasKey(key);
         if (Boolean.TRUE.equals(exists)) {
+            auditLogger.failure("auth.register", username, "username exists", start);
             throw new BusinessException(ApiResponse.ErrorCode.BAD_REQUEST, "用户名已存在");
         }
 
@@ -48,21 +51,26 @@ public class AuthService {
 
         redisTemplate.opsForHash().putAll(key, user);
         log.info("新用户注册: {}", username);
-        return login(username, password);
+        Map<String, String> result = login(username, password);
+        auditLogger.success("auth.register", username, "user created", start);
+        return result;
     }
 
     /**
      * 登录：校验密码，签发 JWT
      */
     public Map<String, String> login(String username, String password) {
+        long start = System.currentTimeMillis();
         String key = USER_KEY_PREFIX + username;
         Object hashObj = redisTemplate.opsForHash().get(key, "passwordHash");
         if (hashObj == null) {
+            auditLogger.failure("auth.login", username, "user not found", start);
             throw new BusinessException(ApiResponse.ErrorCode.UNAUTHORIZED, "用户名或密码错误");
         }
 
         String hash = String.valueOf(hashObj);
         if (!ENCODER.matches(password, hash)) {
+            auditLogger.failure("auth.login", username, "bad password", start);
             throw new BusinessException(ApiResponse.ErrorCode.UNAUTHORIZED, "用户名或密码错误");
         }
 
@@ -75,6 +83,7 @@ public class AuthService {
         result.put("username", username);
         result.put("role", role);
         result.put("expiresIn", jwtUtil.getExpireMs() + "");
+        auditLogger.success("auth.login", username, "token issued", start);
         return result;
     }
 }

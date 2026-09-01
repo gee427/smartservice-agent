@@ -1,10 +1,12 @@
 package com.smartservice.admin;
 
 import com.smartservice.api.ApiResponse;
+import com.smartservice.audit.AuditLogger;
 import com.smartservice.memory.SessionTracker;
 import com.smartservice.metrics.AgentMetrics;
 import com.smartservice.orchestrator.LlmClient;
 import com.smartservice.orchestrator.RouterAgent;
+import com.smartservice.security.JwtAuthInterceptor;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -12,6 +14,7 @@ import io.micrometer.core.instrument.Timer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -38,6 +41,7 @@ public class AdminController {
     private final LlmClient llmClient;
     private final RedisConnectionFactory redisConnectionFactory;
     private final AgentMetrics agentMetrics;
+    private final AuditLogger auditLogger;
 
     /**
      * 会话列表（按最后活动倒序）
@@ -53,8 +57,12 @@ public class AdminController {
      * 删除会话（清消息 + 清索引）
      */
     @DeleteMapping("/sessions/{sessionId}")
-    public ApiResponse<Map<String, String>> deleteSession(@PathVariable String sessionId) {
+    public ApiResponse<Map<String, String>> deleteSession(@PathVariable String sessionId,
+                                                          HttpServletRequest request) {
+        long start = System.currentTimeMillis();
+        String operator = (String) request.getAttribute(JwtAuthInterceptor.ATTR_USERNAME);
         sessionTracker.remove(sessionId);
+        auditLogger.success("admin.session.delete", operator, "session=" + sessionId, start);
         return ApiResponse.success(Map.of("status", "deleted", "sessionId", sessionId));
     }
 

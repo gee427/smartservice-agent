@@ -1,7 +1,6 @@
 package com.smartservice.orchestrator;
 
 import com.smartservice.api.ApiResponse;
-import com.smartservice.api.BusinessException;
 import com.smartservice.memory.SessionManager;
 import com.smartservice.memory.SessionTracker;
 import com.smartservice.metrics.AgentMetrics;
@@ -128,5 +127,6 @@ public class AgentController {
 
     public record ChatRequest(String userId, String sessionId,
                               @NotBlank(message = "消息内容不能为空") String message) {}
+
     public record ChatResponse(String sessionId, String intent, String content, String status) {}
 }
