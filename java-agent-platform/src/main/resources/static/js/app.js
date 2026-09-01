@@ -105,18 +105,19 @@
     let payload = null;
     try { payload = JSON.parse(data); } catch (e) { /* 纯文本 token */ }
 
-    // done 事件：携带意图信息
-    if (payload && payload.done) {
+    // done 事件：payload 是对象且 done=true，携带意图信息
+    if (payload && typeof payload === 'object' && payload.done) {
       const cursor = bubble.querySelector('.cursor');
       if (cursor) cursor.remove();
       if (payload.intent) showIntentTag(payload.intent);
       return;
     }
 
-    // 流式 token（JSON 对象或裸字符串）
-    const token = payload && typeof payload === 'object' ? '' : (payload !== null ? String(data) : '');
-    if (token === '[DONE]' || token === '') return;
-    bubble.textContent += token;
+    // 流式 token：payload 为 null 时是后端推送的纯文本片段（如"北京"/"今天"/"天气"）
+    if (payload !== null) return;        // 其他结构化消息（暂未使用）忽略
+    if (data === '[DONE]') return;
+
+    bubble.textContent += data;
     chatArea.scrollTop = chatArea.scrollHeight;
   }
 
