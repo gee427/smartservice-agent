@@ -1,8 +1,7 @@
 # SmartService-Agent 智能客服平台
 
-[![CI](https://github.com/<your-github-username>/SmartService-Agent/actions/workflows/ci.yml/badge.svg)](https://github.com/<your-github-username>/SmartService-Agent/actions/workflows/ci.yml)
+[![CI](https://github.com/gee427/smartservice-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/gee427/smartservice-agent/actions/workflows/ci.yml)
 
-<!-- 徽章地址中的 <your-github-username> 替换为实际 GitHub 用户名后即可显示 CI 状态 -->
 
 基于 Java + Python + 本地 LLM（LM Studio）的渐进式 Agent 学习项目。
 
