@@ -1,0 +1,50 @@
+# =====================================================================
+# P3-1: SmartService 全栈编排
+# 服务：platform（Spring Boot 平台）+ redis（会话/用户/限流存储）
+# LLM：复用宿主机 LM Studio（host.docker.internal:1234），无需容器化
+#
+# 启动：docker compose up -d --build
+# 停止：docker compose down
+# 查看：docker compose logs -f platform
+# =====================================================================
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: smartservice-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  platform:
+    build: ./java-agent-platform
+    image: smartservice-platform:1.0.0
+    container_name: smartservice-platform
+    ports:
+      - "8080:8080"
+    environment:
+      # Redis 指向 compose 内部服务名
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+      # LLM 指向宿主机的 LM Studio（Windows/Mac 内置支持；Linux 靠 extra_hosts 兜底）
+      AGENT_LLM_BASEURL: http://host.docker.internal:1234/v1
+      # 生产密钥务必通过环境注入
+      JWT_SECRET: ${JWT_SECRET:-smartservice-docker-demo-secret-key-please-change-2026}
+      # 管理后台可观测性
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,metrics,prometheus
+    depends_on:
+      redis:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+volumes:
+  redis-data:

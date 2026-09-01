@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartService 管理后台</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+  <!-- P2-1: 登录视图（未认证时显示） -->
+  <div id="loginView" class="login-overlay">
+    <form id="loginForm" class="login-card">
+      <div class="login-logo">
+        <span class="logo-badge">SS</span>
+        <div>
+          <strong>SmartService</strong>
+          <span class="side-sub">运营管理台</span>
+        </div>
+      </div>
+      <h1 id="loginTitle">登录</h1>
+      <input id="loginUser" type="text" placeholder="用户名（3-32 位字母/数字/下划线）" autocomplete="username" required>
+      <input id="loginPass" type="password" placeholder="密码（至少 6 位）" autocomplete="current-password" required>
+      <p id="loginError" class="login-error"></p>
+      <button type="submit" id="loginBtn" class="btn-login">登 录</button>
+      <p class="login-switch">
+        <a href="#" id="switchMode">没有账号？立即注册</a>
+      </p>
+    </form>
+  </div>
+
+  <!-- 主界面（认证通过后显示） -->
+  <div id="dashboardView" class="dashboard" hidden>
+    <aside class="sidebar">
+      <div class="side-logo">
+        <span class="logo-badge">SS</span>
+        <div>
+          <strong>SmartService</strong>
+          <span class="side-sub">运营管理台</span>
+        </div>
+      </div>
+      <nav>
+        <a class="nav-item active" href="#overview">总览</a>
+        <a class="nav-item" href="#sessions">会话管理</a>
+        <a class="nav-item" href="#agents">Agent 状态</a>
+        <a class="nav-item" href="/" target="_blank">返回聊天端</a>
+      </nav>
+      <div class="side-footer">v1.0.0 · 2026</div>
+    </aside>
+
+    <main class="main">
+      <header class="main-header">
+        <h1>运营总览</h1>
+        <div class="header-right">
+          <span id="userBadge" class="user-badge">—</span>
+          <button id="btnLogout" class="btn-refresh">退出</button>
+          <span id="healthBadge" class="badge badge-pending">检测中…</span>
+          <span id="refreshTime" class="refresh-time">—</span>
+          <button id="btnRefresh" class="btn-refresh">刷新</button>
+        </div>
+      </header>
+
+      <section id="overview">
+        <div class="status-row">
+          <div class="status-card">
+            <span class="status-label">平台服务</span>
+            <span id="stPlatform" class="status-value">-</span>
+          </div>
+          <div class="status-card">
+            <span class="status-label">Redis</span>
+            <span id="stRedis" class="status-value">-</span>
+          </div>
+          <div class="status-card">
+            <span class="status-label">LLM (LM Studio)</span>
+            <span id="stLlm" class="status-value">-</span>
+          </div>
+        </div>
+
+        <div class="metric-grid">
+          <div class="metric-card">
+            <span class="metric-label">总请求数</span>
+            <span id="mTotal" class="metric-value">0</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">平均延迟</span>
+            <span id="mLatency" class="metric-value">0 ms</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">活跃会话</span>
+            <span id="mActive" class="metric-value">0</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Token 消耗</span>
+            <span id="mTokens" class="metric-value">0</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>意图分布</h2>
+          <div id="intentBars" class="intent-bars"><p class="empty">暂无数据</p></div>
+        </div>
+      </section>
+
+      <section id="sessions">
+        <div class="panel">
+          <h2>会话列表 <span id="sessionCount" class="count-badge">0</span></h2>
+          <table class="sessions-table">
+            <thead>
+              <tr>
+                <th>会话 ID</th>
+                <th>用户</th>
+                <th>意图</th>
+                <th>消息轮数</th>
+                <th>最后活动</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="sessionBody">
+              <tr><td colspan="6" class="empty">暂无会话</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="agents">
+        <div class="panel">
+          <h2>业务 Agent</h2>
+          <div id="agentGrid" class="agent-grid"><p class="empty">暂无数据</p></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

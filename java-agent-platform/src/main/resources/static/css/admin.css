@@ -1,0 +1,175 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #f4f5f7;
+  color: #1f2329;
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 210px;
+  background: #1d2633;
+  color: #cfd6e0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 14px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.side-logo { display: flex; align-items: center; gap: 10px; padding: 0 6px 18px; border-bottom: 1px solid #2e3a4b; }
+.logo-badge {
+  width: 36px; height: 36px; border-radius: 9px;
+  background: #378ADD; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 500; font-size: 14px;
+}
+.side-logo strong { display: block; font-size: 14px; font-weight: 500; color: #fff; }
+.side-sub { font-size: 11px; color: #8b98a8; }
+
+nav { margin-top: 16px; display: flex; flex-direction: column; gap: 4px; }
+.nav-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #cfd6e0;
+  text-decoration: none;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+.nav-item:hover { background: #2a3647; }
+.nav-item.active { background: #2a3647; color: #fff; }
+
+.side-footer { margin-top: auto; font-size: 11px; color: #5f6b7c; padding: 0 6px; }
+
+.main { flex: 1; padding: 24px 28px; max-width: 1100px; }
+
+.main-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.main-header h1 { font-size: 20px; font-weight: 500; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+
+.badge { padding: 5px 12px; border-radius: 14px; font-size: 12px; }
+.badge-up { background: #E1F5EE; color: #0F6E56; }
+.badge-down { background: #FCEBEB; color: #A32D2D; }
+.badge-pending { background: #FAEEDA; color: #854F0B; }
+
+.refresh-time { font-size: 12px; color: #8a9099; }
+.btn-refresh {
+  border: 1px solid #d5d8dd; background: #fff; color: #5f6368;
+  padding: 7px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;
+}
+.btn-refresh:hover { background: #f4f5f7; }
+
+.status-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+.status-card {
+  background: #fff; border: 1px solid #e8eaed; border-radius: 12px;
+  padding: 16px 18px;
+}
+.status-label { display: block; font-size: 12px; color: #8a9099; margin-bottom: 6px; }
+.status-value { font-size: 18px; font-weight: 500; }
+.status-value.up { color: #0F6E56; }
+.status-value.down { color: #A32D2D; }
+
+.metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 14px; }
+.metric-card {
+  background: #fff; border: 1px solid #e8eaed; border-radius: 12px;
+  padding: 16px 18px;
+}
+.metric-label { display: block; font-size: 12px; color: #8a9099; margin-bottom: 6px; }
+.metric-value { font-size: 22px; font-weight: 500; color: #185FA5; }
+
+.panel {
+  background: #fff; border: 1px solid #e8eaed; border-radius: 12px;
+  padding: 18px 20px; margin-bottom: 14px;
+}
+.panel h2 { font-size: 14px; font-weight: 500; margin-bottom: 14px; }
+
+.intent-bars { display: flex; flex-direction: column; gap: 10px; }
+.intent-row { display: flex; align-items: center; gap: 12px; }
+.intent-name { width: 90px; font-size: 13px; color: #5f6368; text-align: right; }
+.intent-bar-track { flex: 1; height: 20px; background: #f0f1f3; border-radius: 6px; overflow: hidden; }
+.intent-bar-fill { height: 100%; background: #378ADD; border-radius: 6px; min-width: 2px; transition: width 0.4s; }
+.intent-count { width: 60px; font-size: 12px; color: #5f6368; }
+
+.empty { color: #8a9099; font-size: 13px; padding: 12px 0; text-align: center; }
+
+.count-badge {
+  background: #E6F1FB; color: #185FA5; border-radius: 10px;
+  font-size: 12px; padding: 2px 8px; margin-left: 8px;
+}
+
+.sessions-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.sessions-table th {
+  text-align: left; padding: 10px 12px; color: #8a9099;
+  font-weight: 400; font-size: 12px; border-bottom: 1px solid #e8eaed;
+}
+.sessions-table td { padding: 10px 12px; border-bottom: 1px solid #f0f1f3; }
+.sessions-table tr:hover td { background: #fafbfc; }
+.sessions-table .mono { font-family: "SF Mono", Consolas, monospace; font-size: 12px; }
+.sessions-table .intent-chip {
+  background: #E6F1FB; color: #185FA5; border-radius: 10px;
+  padding: 2px 8px; font-size: 11px;
+}
+.btn-del {
+  border: 1px solid #F7C1C1; color: #A32D2D; background: #fff;
+  padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer;
+}
+.btn-del:hover { background: #FCEBEB; }
+
+.agent-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.agent-card {
+  border: 1px solid #e8eaed; border-radius: 10px; padding: 14px 16px;
+  background: #fafbfc;
+}
+.agent-card strong { display: block; font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+.agent-card span { font-size: 12px; color: #8a9099; }
+
+@media (max-width: 900px) {
+  .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  .status-row { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+}
+
+/* ===== P2-1 登录视图 ===== */
+.login-overlay {
+  position: fixed; inset: 0;
+  background: #f4f5f7;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.login-card {
+  width: 340px; padding: 36px 32px;
+  background: #fff; border-radius: 14px;
+  box-shadow: 0 8px 30px rgba(31, 35, 41, 0.10);
+  display: flex; flex-direction: column; gap: 14px;
+}
+.login-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.login-logo strong { font-size: 15px; font-weight: 500; }
+.login-card h1 { font-size: 22px; font-weight: 600; }
+.login-card input {
+  padding: 10px 12px; border: 1px solid #d5d8dd; border-radius: 8px;
+  font-size: 14px; outline: none; transition: border-color 0.15s;
+}
+.login-card input:focus { border-color: #378ADD; }
+.btn-login {
+  padding: 11px; border: none; border-radius: 8px;
+  background: #378ADD; color: #fff; font-size: 14px; cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-login:hover { background: #2b76c4; }
+.login-error {
+  display: none; margin: 0;
+  font-size: 12px; color: #A32D2D; background: #FCEBEB;
+  padding: 8px 10px; border-radius: 6px;
+}
+.login-switch { text-align: center; font-size: 13px; }
+.login-switch a { color: #378ADD; text-decoration: none; }
+.login-switch a:hover { text-decoration: underline; }
+
+/* ===== P2-1 用户徽章 ===== */
+.user-badge {
+  padding: 5px 12px; border-radius: 14px;
+  background: #E8F1FC; color: #2468B8; font-size: 12px;
+}

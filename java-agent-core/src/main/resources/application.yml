@@ -1,0 +1,37 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: java-agent-core
+
+  ai:
+    openai:
+      api-key: not-needed
+      base-url: http://localhost:1234/v1
+      chat:
+        options:
+          model: qwen3vl-8b-uncensored-hauhaucs-aggressive
+          temperature: 0.7
+          max-tokens: 2000
+
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
+# 自定义配置
+agent:
+  session:
+    ttl-hours: 24
+    max-history: 10
+  tools:
+    weather:
+      enabled: true
+    calculator:
+      enabled: true

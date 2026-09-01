@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartService 智能客服</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="header-left">
+        <span class="logo">SS</span>
+        <div>
+          <h1>SmartService 智能客服</h1>
+          <p class="subtitle">多 Agent 路由 · 流式输出</p>
+        </div>
+      </div>
+      <button id="btnClear" class="btn-ghost" title="清空当前会话">清空会话</button>
+    </header>
+
+    <main id="chatArea" class="chat-area">
+      <div class="welcome">
+        <div class="welcome-icon">AI</div>
+        <h2>您好，我是 SmartService 智能客服</h2>
+        <p>可以问我天气、算数、产品价格、退货流程、故障排查……我会自动路由到对应的专家 Agent。</p>
+        <div class="suggestions">
+          <button class="chip" data-msg="北京今天天气怎么样？">🌤 北京天气</button>
+          <button class="chip" data-msg="帮我算一下 15*23+8 等于多少">🧮 数学计算</button>
+          <button class="chip" data-msg="智能手表多少钱？">💰 产品价格</button>
+          <button class="chip" data-msg="我要退货">📦 退货流程</button>
+        </div>
+      </div>
+    </main>
+
+    <footer class="input-bar">
+      <input id="inputBox" type="text" placeholder="输入你的问题，回车发送…" autocomplete="off">
+      <button id="btnSend" class="btn-primary">发送</button>
+    </footer>
+  </div>
+  <script src="js/app.js"></script>
+</body>
+</html>

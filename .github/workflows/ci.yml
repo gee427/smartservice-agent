@@ -1,0 +1,128 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+# 同一分支/PR 的新提交自动取消旧工作流，避免浪费 runner 配额
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# 最小权限：contents 只读，packages 写权限仅 GHCR push job 需要
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # ============ 1. java-agent-core：编译 + 测试 ============
+  # 无单元测试，verify 保证编译通过（含 spring-boot repackage 检查）
+  test-java-core:
+    name: Java Core (build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'          # 自动缓存 ~/.m2，key 基于全部 pom.xml 内容
+
+      - name: Build & verify java-agent-core
+        working-directory: java-agent-core
+        run: mvn -B -ntp verify
+
+  # ============ 2. java-agent-platform：编译 + 测试 + 覆盖率 ============
+  # 集成测试依赖真实 Redis（@SpringBootTest + RedisTemplate），
+  # 通过 services 启动 Redis 容器并等待健康检查通过
+  # 测试全部走 FAQ 关键词直查路径，不依赖 LM Studio
+  test-java-platform:
+    name: Java Platform (build + test + coverage)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379             # service 端口映射到 runner localhost，测试连 localhost:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build, test & coverage (verify triggers JaCoCo report)
+        working-directory: java-agent-platform
+        run: mvn -B -ntp verify
+
+      - name: Upload JaCoCo coverage report
+        if: always()              # 测试失败也保留覆盖率报告便于排查
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: java-agent-platform/target/site/jacoco/
+          retention-days: 14
+
+  # ============ 3. python-prototype：语法检查 ============
+  # py_compile 只编译不 import，无需安装 langchain/torch 等重依赖，秒级完成
+  test-python-prototype:
+    name: Python Prototype (syntax check)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Syntax check
+        working-directory: python-prototype
+        run: python -m py_compile day1_single_agent.py day2_memory_agent.py day3_rag_agent.py
+
+  # ============ 4. Docker 镜像构建 + 推送 GHCR（仅 main push） ============
+  # GITHUB_TOKEN 自动可用，无需配置任何 secrets；type=gha 缓存镜像层加速
+  build-and-push-docker:
+    name: Docker image (GHCR)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [test-java-core, test-java-platform]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push image
+        uses: docker/build-push-action@v6
+        with:
+          context: java-agent-platform
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner | lower }}/smartservice-agent:latest
+            ghcr.io/${{ github.repository_owner | lower }}/smartservice-agent:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,0 +1,63 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: java-agent-platform
+
+  ai:
+    openai:
+      api-key: not-needed
+      base-url: http://localhost:1234/v1
+      chat:
+        options:
+          model: qwen3vl-8b-uncensored-hauhaucs-aggressive
+          temperature: 0.7
+          max-tokens: 2000
+
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 16
+        max-idle: 8
+        min-idle: 4
+
+# Actuator 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# 自定义配置
+agent:
+  llm:
+    base-url: http://localhost:1234/v1
+    model: qwen3vl-8b-uncensored-hauhaucs-aggressive
+    temperature: 0.7
+    max-tokens: 2000
+  session:
+    ttl-hours: 24
+    max-history: 10
+  workflow:
+    max-rounds: 5
+  router:
+    fallback-agent: FAQAgent
+  jwt:
+    # P2-1: HS256 签名密钥（至少 32 字节），生产环境务必通过环境变量注入，不要写死在配置文件
+    secret: ${JWT_SECRET:smartservice-agent-demo-secret-key-please-change-in-prod-2026}
+    expire-hours: 24
+  rate-limit:
+    # P2-2: 固定窗口限流（按客户端 IP，60s 窗口），超限返回 42900
+    enabled: true
+    chat-per-minute: 10      # 对话接口（防刷 LLM 成本）
+    login-per-minute: 5      # 认证接口（防爆破）

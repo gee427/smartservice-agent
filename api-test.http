@@ -1,0 +1,173 @@
+### SmartService Agent API 测试
+
+### 1. 基础对话
+POST http://localhost:8081/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "user_001",
+  "sessionId": "sess_001",
+  "message": "北京今天天气怎么样？"
+}
+
+### 2. 数学计算
+POST http://localhost:8081/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "user_001",
+  "sessionId": "sess_001",
+  "message": "帮我算一下 15 * 23 + 8"
+}
+
+### 3. 获取会话历史
+GET http://localhost:8081/api/agent/sessions/sess_001/history
+
+### 4. 清除会话
+DELETE http://localhost:8081/api/agent/sessions/sess_001
+
+### 5. 健康检查
+GET http://localhost:8081/actuator/health
+
+### 6. Prometheus 指标
+GET http://localhost:8081/actuator/prometheus
+
+### ======== java-agent-platform (8080) ========
+### 统一响应体: { code, message, data }  (code=0 成功)
+
+### 7. 平台对话（意图路由）
+POST http://localhost:8080/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "user_002",
+  "sessionId": "sess_002",
+  "message": "北京今天天气怎么样？"
+}
+
+### 8. 平台健康检查
+GET http://localhost:8080/api/agent/health
+
+### 9. 退货流程（状态机多轮）— 第1轮：发起
+POST http://localhost:8080/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "user_002",
+  "sessionId": "sess_return",
+  "message": "我要退货"
+}
+
+### 10. 退货流程 — 第2轮：提供订单号
+POST http://localhost:8080/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "user_002",
+  "sessionId": "sess_return",
+  "message": "订单号 20260815001"
+}
+
+### 11. 平台会话历史
+GET http://localhost:8080/api/agent/sessions/sess_002/history
+
+### 12. 清除平台会话
+DELETE http://localhost:8080/api/agent/sessions/sess_002
+
+### 13. 空消息校验（应返回 code=40000）
+POST http://localhost:8080/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "user_002",
+  "sessionId": "sess_002",
+  "message": ""
+}
+
+### ======== P2-1 JWT 认证 (8080) ========
+
+### 14. 注册（自动登录，返回 token）
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+### 15. 重复注册（应返回 code=40000 用户名已存在）
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+### 16. 登录（正确密码）
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+### 17. 登录（错误密码，应返回 code=40100）
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "wrong-pass"
+}
+
+### 18. 无 token 访问管理后台（应返回 code=40100）
+GET http://localhost:8080/api/admin/health
+
+### 19. 带 token 访问管理后台（把 <TOKEN> 替换为用例 14/16 返回的 token）
+GET http://localhost:8080/api/admin/health
+Authorization: Bearer <TOKEN>
+
+### 20. 当前登录用户信息
+GET http://localhost:8080/api/auth/me
+Authorization: Bearer <TOKEN>
+
+### ======== P2-2 参数校验与限流 (8080) ========
+
+### 21. 参数校验：用户名非法（应返回 40000 + 具体信息）
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "ab",
+  "password": "admin123"
+}
+
+### 22. 参数校验：密码过短（应返回 40000 + 具体信息）
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "123"
+}
+
+### 23. 限流：认证接口 5 次/分钟（连续快速调用 6 次，第 6 次应返回 42900）
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "wrong-pass"
+}
+
+### 24. 限流：对话接口 10 次/分钟（连续快速调用 11 次，第 11 次应返回 42900）
+POST http://localhost:8080/api/agent/chat
+Content-Type: application/json
+
+{
+  "userId": "user_002",
+  "sessionId": "sess_002",
+  "message": "你好"
+}
