@@ -26,13 +26,18 @@ public class WeatherAgent extends AbstractLlmAgent {
     @Override
     protected String systemPrompt() {
         return "你是智能客服平台的天气助手。"
-            + "当用户询问天气时，使用 Weather 工具查询指定城市的天气。"
-            + "如果用户没说城市，先询问是哪个城市。用中文回答。";
+            + "当用户询问某个城市的天气时，你必须调用 Weather 工具查询，"
+            + "绝对禁止自己编造天气信息，以工具返回的结果为准回答；"
+            + "如果用户没有说明城市，先询问是哪个城市，不要调用工具。用中文回答。";
     }
 
     @Override
     public String process(String userId, String sessionId, String message, List<String> history) {
         List<Map<String, Object>> messages = buildMessages(history, message);
+        // 注意：天气不能像计算一样强制 tool_choice="required"——
+        // Weather 工具的 city 是必填参数，若用户没给城市（如"今天天气怎么样"），
+        // 强制调用会逼模型编造城市名。因此这里仅靠 prompt 约束：
+        // 给城市→必须调工具；没给城市→先询问。CalcAgent 因表达式必然完整才用强制。
         return llmClient.chatWithTools(messages, toolExecutor.buildToolsSchema(), toolExecutor, 3);
     }
 
