@@ -1,0 +1,50 @@
+# =====================================================================
+# P3-4: 告警规则（Prometheus 加载，Alertmanager 分发）
+#
+# 指标命名说明（Micrometer → Prometheus 命名转换）:
+#   agent.redis.up          → agent_redis_up           （0/1，AdminController.health 刷新）
+#   agent.llm.up            → agent_llm_up             （0/1）
+#   agent.requests.total    → agent_requests_total
+#   agent.requests.errors.total → agent_requests_errors_total
+#
+# 注意: agent_redis_up / agent_llm_up 依赖管理后台健康检查被访问过（或健康探针轮询），
+#       生产环境建议由监控探针定时打 /api/admin/health（health-check.sh 已支持带 token）。
+# =====================================================================
+groups:
+  - name: smartservice-agent
+    rules:
+      - alert: AgentDown
+        expr: up{job="smartservice-agent"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "平台进程不可达"
+          description: "Prometheus 已连续 1 分钟无法抓取 /actuator/prometheus，进程可能已宕机"
+
+      - alert: RedisDown
+        expr: agent_redis_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis 不可用"
+          description: "agent_redis_up=0 持续 2 分钟，会话/认证/限流全部受影响"
+
+      - alert: LlmDown
+        expr: agent_llm_up == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "LLM 引擎不可用（服务降级运行）"
+          description: "agent_llm_up=0 持续 5 分钟。FAQ 关键词直查仍可用，请重载 LM Studio 模型"
+
+      - alert: HighErrorRate
+        expr: rate(agent_requests_errors_total[5m]) / clamp_min(rate(agent_requests_total[5m]), 1) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "请求错误率超过 20%"
+          description: "最近 5 分钟错误率 > 20%（agent_requests_errors_total / agent_requests_total）"

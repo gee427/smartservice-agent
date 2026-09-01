@@ -45,6 +45,11 @@ SmartService-Agent/
 ├── scripts/
 │   └── health-check.sh        # P3-3 健康告警：/actuator/health 三层探针，退出码 0/1/2/3
 │
+├── monitoring/                # P3-4 监控对接
+│   ├── prometheus.yml         # 抓取 /actuator/prometheus（15s）
+│   ├── alert-rules.yml        # 告警规则：AgentDown/RedisDown/LlmDown/HighErrorRate
+│   └── alertmanager.yml       # 企业微信 webhook 通知
+│
 ├── .github/workflows/
 │   └── ci.yml                 # GitHub Actions CI/CD
 └── README.md

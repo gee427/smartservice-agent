@@ -1,0 +1,20 @@
+# =====================================================================
+# P3-4: Alertmanager 配置
+# 本地运行: alertmanager.exe --config.file=monitoring/alertmanager.yml
+# 访问: http://localhost:9093
+#
+# 当前接收器为企业微信机器人 webhook（把 key 换成自己的）。
+# 也可改为 email_configs / slack_configs / 自建 webhook（如对接 health-check.sh）。
+# =====================================================================
+route:
+  group_by: [alertname]      # 相同告警名聚合
+  group_wait: 30s            # 组内首条等待时间
+  group_interval: 5m         # 组内重复间隔
+  repeat_interval: 4h        # 已解决前重复通知间隔
+  receiver: wecom-webhook
+
+receivers:
+  - name: wecom-webhook
+    webhook_configs:
+      - url: "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=<替换为你的企业微信机器人key>"
+        send_resolved: true   # 恢复时也通知

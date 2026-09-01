@@ -1,0 +1,24 @@
+# =====================================================================
+# P3-4: Prometheus 抓取配置
+# 本地运行（Windows 解压版）:
+#   prometheus.exe --config.file=monitoring/prometheus.yml
+# 访问: http://localhost:9090  告警: http://localhost:9090/alerts
+# =====================================================================
+global:
+  scrape_interval: 15s      # 抓取间隔
+  evaluation_interval: 15s  # 规则评估间隔
+
+rule_files:
+  - alert-rules.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["localhost:9093"]
+
+scrape_configs:
+  - job_name: smartservice-agent
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["localhost:8080"]
+    # 生产建议: 用 basic_auth / 独立端口暴露 metrics，避免业务接口混用

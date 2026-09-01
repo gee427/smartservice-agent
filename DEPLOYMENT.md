@@ -1,6 +1,6 @@
 # SmartService Agent 部署指南
 
-> P3-1：容器化部署；P3-2：GitHub Actions CI/CD。本文档覆盖本地开发部署、Docker 生产部署与持续集成流水线。
+> P3-1：容器化部署；P3-2：GitHub Actions CI/CD；P3-3：日志与告警；P3-4：Prometheus 监控对接。本文档覆盖本地开发部署、Docker 生产部署、持续集成与监控告警。
 
 ## 1. 架构与端口
 
@@ -178,7 +178,61 @@ curl http://localhost:8080/actuator/health
 
 通知渠道示例（企业微信机器人，异常时 POST）：`curl -s -X POST 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx' -H 'Content-Type: application/json' -d '{"msgtype":"text","text":{"content":"SmartService 健康告警"}}'`
 
-## 7. 国内镜像加速（可选，构建慢时）
+## 7. 监控与告警（P3-4）
+
+`/actuator/prometheus` 已暴露全部指标（P1-2 引入 micrometer-registry-prometheus），P3-4 补充业务指标与 Prometheus/Alertmanager 对接配置。
+
+### 7.1 指标清单
+
+| 指标（Prometheus 命名） | 说明 |
+|---|---|
+| `agent_requests_total` / `agent_requests_by_intent_total{intent}` | 请求总数 / 意图分布 |
+| `agent_requests_errors_total` / `agent_requests_errors_by_intent_total` | **失败请求**（路由/流式异常路径计数） |
+| `agent_requests_stream_total` / `agent_streams_by_intent_total` | SSE 流式请求数 / 意图分布 |
+| `agent_stream_chars_total` | SSE 累计输出字符数 |
+| `agent_tokens_total` | Token 消耗估计 |
+| `agent_response_time_*` | 响应时间直方图（ms） |
+| `agent_sessions_active` | 活跃会话数 |
+| `agent_rate_limited_total` / `agent_rate_limited_by_resource_total{resource}` | **限流触发**（chat/login） |
+| `agent_redis_up` / `agent_llm_up` | **服务健康 0/1**（管理后台健康检查每次评估后刷新，供告警规则使用） |
+
+### 7.2 配置文件（monitoring/ 目录）
+
+| 文件 | 说明 |
+|---|---|
+| `prometheus.yml` | 15s 抓取 `localhost:8080/actuator/prometheus`，加载规则，对接 Alertmanager（9093） |
+| `alert-rules.yml` | 4 条规则：AgentDown（抓取失败 1m，critical）/ RedisDown（2m，critical）/ LlmDown（5m，warning，服务可降级）/ HighErrorRate（5m 错误率 >20%，warning） |
+| `alertmanager.yml` | 路由聚合 + 企业微信机器人 webhook 接收器（key 替换后生效） |
+
+### 7.3 本地运行（Windows 解压版，免 Docker）
+
+```bash
+# 1. 下载 prometheus + alertmanager windows-amd64 压缩包解压
+# 2. 启动（项目根目录执行，配置内相对路径基于当前目录）
+prometheus.exe --config.file=monitoring/prometheus.yml
+alertmanager.exe --config.file=monitoring/alertmanager.yml
+# 3. 验证
+#    Prometheus UI    http://localhost:9090  → Status/Targets 应显示 UP
+#    告警页           http://localhost:9090/alerts
+#    手动查询         agent_requests_total 或 agent_llm_up
+```
+
+### 7.4 告警触发链路
+
+```
+管理后台 5s 轮询 /api/admin/health ──▶ 刷新 agent_redis_up / agent_llm_up gauge
+        Prometheus 15s 抓取 /actuator/prometheus
+        ├─▶ up == 0            → AgentDown
+        ├─▶ agent_redis_up==0  → RedisDown
+        ├─▶ agent_llm_up==0    → LlmDown（warning）
+        └─▶ 错误率 > 20%        → HighErrorRate
+                     ▼
+        Alertmanager → 企业微信机器人 webhook（可换邮件/Slack/自建）
+```
+
+生产建议：metrics 端点用独立管理端口 + basic_auth 暴露，勿与业务接口混用；K8s 环境直接用 Prometheus Operator / ServiceMonitor；`agent_redis_up`/`agent_llm_up` 依赖健康检查被访问，生产由探针（第 6.3 节 health-check.sh 带 token 版）定时触发。
+
+## 8. 国内镜像加速（可选，构建慢时）
 
 Docker 拉取基础镜像慢/失败时，配置镜像加速器。Docker Desktop：
 Settings → Docker Engine，编辑 `daemon.json`：
@@ -195,7 +249,7 @@ Settings → Docker Engine，编辑 `daemon.json`：
 
 保存并 Restart。之后 `docker compose up -d --build` 即可。
 
-## 8. 生产配置注意事项
+## 9. 生产配置注意事项
 
 | 项 | 本地默认 | 生产建议 |
 |---|---|---|
@@ -205,7 +259,7 @@ Settings → Docker Engine，编辑 `daemon.json`：
 | 限流阈值 | chat 10/min, login 5/min | 按业务压测调整 |
 | 可观测性 | Actuator 本地 | Prometheus 抓取 `/actuator/prometheus` |
 
-## 9. 常见问题
+## 10. 常见问题
 
 - **管理后台显示 llm: DOWN**：LM Studio 引擎未加载模型（`/models` 有响应但 `/chat/completions` 挂起）。在 LM Studio 中重新加载模型。
 - **容器内连不上 LM Studio**：确认宿主机 LM Studio 在运行；Linux 下 `extra_hosts: host.docker.internal:host-gateway` 已配置。

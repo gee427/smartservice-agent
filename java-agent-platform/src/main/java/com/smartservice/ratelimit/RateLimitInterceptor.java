@@ -2,6 +2,7 @@ package com.smartservice.ratelimit;
 
 import com.smartservice.api.ApiResponse;
 import com.smartservice.api.BusinessException;
+import com.smartservice.metrics.AgentMetrics;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         Long.class);
 
     private final RedisTemplate<String, Object> redisTemplate;
+    private final AgentMetrics agentMetrics;
 
     @Value("${agent.rate-limit.enabled:true}")
     private boolean enabled;
@@ -46,8 +48,10 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     @Value("${agent.rate-limit.login-per-minute:5}")
     private int loginPerMinute;
 
-    public RateLimitInterceptor(RedisTemplate<String, Object> redisTemplate) {
+    public RateLimitInterceptor(RedisTemplate<String, Object> redisTemplate,
+                                AgentMetrics agentMetrics) {
         this.redisTemplate = redisTemplate;
+        this.agentMetrics = agentMetrics;
     }
 
     @Override
@@ -75,6 +79,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
         if (allowed == null || allowed == 0L) {
             log.warn("Rate limited: resource={} ip={} limit={}/min", resource, ip, limit);
+            agentMetrics.recordRateLimited(resource);   // P3-4: 限流触发计数
             throw new BusinessException(ApiResponse.ErrorCode.RATE_LIMITED);
         }
         return true;

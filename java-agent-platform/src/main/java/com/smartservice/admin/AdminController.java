@@ -2,6 +2,7 @@ package com.smartservice.admin;
 
 import com.smartservice.api.ApiResponse;
 import com.smartservice.memory.SessionTracker;
+import com.smartservice.metrics.AgentMetrics;
 import com.smartservice.orchestrator.LlmClient;
 import com.smartservice.orchestrator.RouterAgent;
 import io.micrometer.core.instrument.Counter;
@@ -31,6 +32,7 @@ public class AdminController {
     private final MeterRegistry registry;
     private final LlmClient llmClient;
     private final RedisConnectionFactory redisConnectionFactory;
+    private final AgentMetrics agentMetrics;
 
     /**
      * 会话列表（按最后活动倒序）
@@ -113,7 +115,11 @@ public class AdminController {
         }
         m.put("redis", redisUp ? "UP" : "DOWN");
 
-        m.put("llm", llmClient.isAvailable() ? "UP" : "DOWN");
+        boolean llmUp = llmClient.isAvailable();
+        m.put("llm", llmUp ? "UP" : "DOWN");
+
+        // P3-4: 刷新健康 gauge（agent.redis.up / agent.llm.up），供 Prometheus 规则告警
+        agentMetrics.updateServiceHealth(redisUp, llmUp);
         return ApiResponse.success(m);
     }
 }
