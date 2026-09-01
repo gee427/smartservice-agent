@@ -38,11 +38,17 @@ public class CalcAgent extends AbstractLlmAgent {
     }
 
     /**
-     * 工具调用链路完成后流式输出
+     * 真流式：工具调用阶段非流式（结构化），工具执行完后最终回答 SSE 逐 token 推送
      */
     @Override
     public void processStream(String userId, String sessionId, String message,
                               List<String> history, java.util.function.Consumer<String> onToken) {
-        pushChunks(process(userId, sessionId, message, history), onToken);
+        try {
+            List<Map<String, Object>> messages = buildMessages(history, message);
+            llmClient.streamChatWithTools(messages, toolExecutor.buildToolsSchema(), toolExecutor, 3, "required", onToken);
+        } catch (Exception e) {
+            logError(e);
+            onToken.accept("（AI 服务暂时不可用，请稍后重试）");
+        }
     }
 }

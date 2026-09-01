@@ -42,11 +42,18 @@ public class WeatherAgent extends AbstractLlmAgent {
     }
 
     /**
-     * 工具调用链路完成后流式输出（工具循环不流式，最终结果按块推送）
+     * 真流式：工具调用阶段非流式（结构化），工具执行完后最终回答 SSE 逐 token 推送
+     * 不给城市时不强制工具（toolChoice=null），prompt 约束会引导模型先询问
      */
     @Override
     public void processStream(String userId, String sessionId, String message,
                               List<String> history, java.util.function.Consumer<String> onToken) {
-        pushChunks(process(userId, sessionId, message, history), onToken);
+        try {
+            List<Map<String, Object>> messages = buildMessages(history, message);
+            llmClient.streamChatWithTools(messages, toolExecutor.buildToolsSchema(), toolExecutor, 3, null, onToken);
+        } catch (Exception e) {
+            logError(e);
+            onToken.accept("（AI 服务暂时不可用，请稍后重试）");
+        }
     }
 }

@@ -202,6 +202,66 @@ public class LlmClient {
     }
 
     /**
+     * 带工具调用的真流式：工具调用阶段非流式（结构化调用无法逐 token），
+     * 工具执行完后最终回答走 SSE 逐 token 推送（打字机效果）
+     * @param toolChoice 首轮强制工具调用（"required"），后续轮次自动回退 auto
+     */
+    public void streamChatWithTools(List<Map<String, Object>> messages,
+                                    List<Map<String, Object>> tools,
+                                    ToolExecutor toolExecutor,
+                                    int maxIterations,
+                                    String toolChoice,
+                                    Consumer<String> onToken) throws Exception {
+        List<Map<String, Object>> working = new ArrayList<>(messages);
+        for (int iteration = 0; iteration < maxIterations; iteration++) {
+            String effectiveToolChoice = (iteration == 0) ? toolChoice : null;
+            Map<String, Object> resp = callRaw(working, 0.3, 2000, tools, effectiveToolChoice, toolRestTemplate);
+            if (resp == null) {
+                onToken.accept("抱歉，LLM 调用失败，请稍后重试。");
+                return;
+            }
+            String content = (String) resp.get("content");
+            List<Map<String, Object>> toolCalls = (List<Map<String, Object>>) resp.get("tool_calls");
+
+            if (toolCalls == null || toolCalls.isEmpty()) {
+                // 无工具调用（如天气没给城市直接反问）→ 推送已有内容
+                if (content != null && !content.isBlank()) {
+                    onToken.accept(content);
+                }
+                return;
+            }
+
+            // 有工具调用：补 assistant 消息 + 执行工具
+            Map<String, Object> assistantMsg = new HashMap<>();
+            assistantMsg.put("role", "assistant");
+            assistantMsg.put("content", content);
+            assistantMsg.put("tool_calls", toolCalls);
+            working.add(assistantMsg);
+
+            for (Map<String, Object> tc : toolCalls) {
+                Map<String, Object> fn = (Map<String, Object>) tc.get("function");
+                String toolName = (String) fn.get("name");
+                String argsJson = (String) fn.get("arguments");
+                String toolCallId = (String) tc.get("id");
+                log.info("🔧 调用工具: {}({})", toolName, argsJson);
+                String result;
+                try {
+                    result = toolExecutor.execute(toolName, argsJson);
+                } catch (Exception e) {
+                    result = "工具执行错误：" + e.getMessage();
+                }
+                log.info("  📊 结果: {}", result);
+                working.add(Map.of("role", "tool", "tool_call_id", toolCallId, "content", result));
+            }
+
+            // 工具已执行完：最终回答走真流式（SSE 逐 token），边生成边推送
+            streamChat(working, 0.3, 2000, onToken);
+            return;
+        }
+        onToken.accept("抱歉，Agent 执行超过最大迭代次数(" + maxIterations + ")，请重试。");
+    }
+
+    /**
      * P1-2: 探测 LLM 引擎是否真正可用（最小 chat 请求 + 30s 结果缓存）
      * 两层假阳性教训：
      *  1) TCP 端口探测：进程存活即通过，引擎崩溃时端口仍监听
