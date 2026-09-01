@@ -30,3 +30,6 @@ dump.rdb
 
 # 运行时日志（logback 滚动输出）
 java-agent-platform/logs/
+
+# 学习日志（个人学习记录，仅本地留存，永不推送 GitHub）
+学习日志/
