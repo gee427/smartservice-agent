@@ -45,14 +45,15 @@ class AgentControllerTest {
 
     @Test
     void chat_faqKeyword_hitsKnowledgeBase() throws Exception {
-        // "退货" 命中 FaqAgent 知识库直查，不依赖 LLM
+        // "运费"命中 FaqAgent 知识库直查。RouterAgent 规则前置确定性路由，不依赖 LLM 分类稳定性
+        // （"退货"相关已归 RETURN 流程语义：办理退货引导，由 ReturnProcessWorkflowTest 覆盖状态机）
         mockMvc.perform(post("/api/agent/chat")
                 .header("X-Forwarded-For", uniqueIp())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"userId\":\"t\",\"sessionId\":\"it-faq\",\"message\":\"我想退货怎么操作\"}"))
+                .content("{\"userId\":\"t\",\"sessionId\":\"it-faq\",\"message\":\"你们的运费怎么收\"}"))
             .andExpect(jsonPath("$.code").value(0))
             .andExpect(jsonPath("$.data.intent").value("FAQ"))
-            .andExpect(jsonPath("$.data.content", containsString("退货")));
+            .andExpect(jsonPath("$.data.content", containsString("运费")));
     }
 
     @Test

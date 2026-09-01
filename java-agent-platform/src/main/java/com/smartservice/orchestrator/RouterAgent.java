@@ -84,8 +84,33 @@ public class RouterAgent {
 
     /**
      * 使用 LLM 进行意图分类
+     * 前置规则：确定性关键词直接命中意图（不依赖 LLM 稳定性），LLM 只兜底模糊场景
+     * 说明：LLM 对中文意图分类存在漂移（同一句话可能今天判 FAQ 明天判 RETURN），
+     * 关键意图（天气/计算/退货流程/FAQ 知识词）用规则钉死，测试与线上行为才稳定。
      */
     private String classifyIntent(String message) {
+        String msg = message == null ? "" : message;
+
+        // ---- 规则前置（确定性）----
+        if (msg.contains("天气")) {
+            return "WEATHER";
+        }
+        // 计算：含"计算"，或含数字 +（等于/多少/运算符号）
+        if (msg.contains("计算")
+            || (msg.matches(".*[0-9].*") && (msg.contains("等于") || msg.contains("多少")
+                || msg.contains("+") || msg.contains("-") || msg.contains("*") || msg.contains("/") || msg.contains("×")))) {
+            return "CALC";
+        }
+        // 退货/售后：办理流程语义（问订单号 → 原因 → 确认 → 提交）
+        if (msg.contains("退货") || msg.contains("退款") || msg.contains("售后")) {
+            return "RETURN";
+        }
+        // FAQ 知识库词（纯知识咨询，无流程歧义）
+        if (msg.contains("保修") || msg.contains("发货") || msg.contains("发票") || msg.contains("运费")) {
+            return "FAQ";
+        }
+
+        // ---- LLM 兜底（模糊场景）----
         try {
             String prompt = "请判断以下用户问题的意图类别，只返回类别代码（大写）：\n"
                 + "- FAQ: 常见问题（产品使用、参数、功能咨询）\n"
