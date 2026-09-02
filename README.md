@@ -88,6 +88,10 @@ SmartService-Agent/
 2. 下载 Qwen2.5-7B-Instruct-GGUF 模型
 3. 启动 Local Server（默认 http://localhost:1234）
 
+> **LM Studio 鉴权（可选）**：若在 LM Studio 的 Local Server 设置里填了 **Server API Key**，本应用需通过环境变量 `LLM_API_KEY` 提供同名 key（请求自动带 `Authorization: Bearer`），否则返回 401、聊天报"AI 服务暂时不可用"。
+> - 默认（不设 Server API Key）：**零配置开箱即用**，无需任何环境变量。
+> - 设置方式（PowerShell）：`$env:LLM_API_KEY='你的key'` 后再 `mvn spring-boot:run`。key 仅存在于运行环境，绝不写进代码/配置文件（配置里是 `${LLM_API_KEY:}` 占位符）。
+
 ### 3. 运行 Python 原型
 ```bash
 cd python-prototype
