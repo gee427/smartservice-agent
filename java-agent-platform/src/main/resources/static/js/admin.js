@@ -96,6 +96,42 @@
 
   $('btnLogout').addEventListener('click', () => showLogin());
 
+  // ---------- 视图切换（侧边导航） ----------
+
+  const VIEW_TITLES = {
+    overview: '运营总览',
+    sessions: '会话管理',
+    agents: 'Agent 状态'
+  };
+  let currentView = 'overview';
+
+  function switchView(view) {
+    if (!VIEW_TITLES[view]) view = 'overview';
+    currentView = view;
+
+    // 切换侧边栏高亮
+    document.querySelectorAll('.nav-item[data-view]').forEach(a => {
+      a.classList.toggle('active', a.dataset.view === view);
+    });
+
+    // 隐藏所有 section，仅显示当前
+    ['overview', 'sessions', 'agents'].forEach(name => {
+      const sec = $(name);
+      if (sec) sec.hidden = (name !== view);
+    });
+
+    // 同步主标题
+    const h1 = document.querySelector('.main-header h1');
+    if (h1) h1.textContent = VIEW_TITLES[view];
+  }
+
+  document.querySelectorAll('.nav-item[data-view]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      switchView(a.dataset.view);
+    });
+  });
+
   // ---------- 数据渲染 ----------
 
   function setStatus(el, up) {

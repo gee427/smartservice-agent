@@ -39,9 +39,9 @@
         </div>
       </div>
       <nav>
-        <a class="nav-item active" href="#overview">总览</a>
-        <a class="nav-item" href="#sessions">会话管理</a>
-        <a class="nav-item" href="#agents">Agent 状态</a>
+        <a class="nav-item active" href="#" data-view="overview">总览</a>
+        <a class="nav-item" href="#" data-view="sessions">会话管理</a>
+        <a class="nav-item" href="#" data-view="agents">Agent 状态</a>
         <a class="nav-item" href="/" target="_blank">返回聊天端</a>
       </nav>
       <div class="side-footer">v1.0.0 · 2026</div>
@@ -100,7 +100,7 @@
         </div>
       </section>
 
-      <section id="sessions">
+      <section id="sessions" hidden>
         <div class="panel">
           <h2>会话列表 <span id="sessionCount" class="count-badge">0</span></h2>
           <table class="sessions-table">
@@ -121,7 +121,7 @@
         </div>
       </section>
 
-      <section id="agents">
+      <section id="agents" hidden>
         <div class="panel">
           <h2>业务 Agent</h2>
           <div id="agentGrid" class="agent-grid"><p class="empty">暂无数据</p></div>
