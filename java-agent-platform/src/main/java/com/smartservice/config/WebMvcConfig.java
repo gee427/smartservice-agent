@@ -20,6 +20,11 @@ import java.util.Arrays;
  * P4-2: CORS 跨域白名单
  * 同源部署（Spring Boot 静态托管前端）本不需要；前后端分离部署时生效。
  * 开发默认放开常见本地端口，生产由 agent.cors.allowed-origins 收紧（环境变量注入）。
+ *
+ * 注意：不要在此自定义 addResourceHandlers 覆盖默认静态资源映射！
+ * Spring Boot 默认将 /** 映射到 classpath:/static/ 等位置，能正确处理 /js/*.js、/css/*.css。
+ * 若自定义 pattern（如 /js/**），Spring 会剥掉 /js/ 前缀去 location 找资源，导致 admin.js 404。
+ * 静态资源缓存策略（no-store）改由 application*.yml 的 spring.web.resources.cache 控制。
  */
 @Configuration
 @RequiredArgsConstructor

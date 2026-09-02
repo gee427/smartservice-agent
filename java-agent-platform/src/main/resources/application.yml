@@ -12,6 +12,14 @@ spring:
   profiles:
     default: dev          # 未显式指定时默认 dev（本地开发零配置）
 
+  # 静态资源禁止缓存：开发期改 HTML/JS/CSS 无需硬刷即可生效。
+  # 仅覆盖 HTML/JS/CSS 等文本资源（Content-Type 匹配），不缓存策略对图片/字体无效——它们仍按默认缓存。
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          no-store: true
+
   # spring-ai starter 自动配置需要 api-key 非空（项目实际用自建 LlmClient 走 agent.llm.*）
   # 生产环境可用环境变量覆盖（OPENAI_API_KEY / LLM_BASE_URL）
   ai:
