@@ -36,7 +36,9 @@ class ToolExecutorTest {
     @Test
     void weather_networkDown() throws Exception {
         // 抓取器抛网络异常 -> 优雅降级为「网络不可用」
-        executor.setHttpFetcher(url -> { throw new RuntimeException(new java.net.SocketTimeoutException("timeout")); });
+        executor.setHttpFetcher(url -> {
+            throw new RuntimeException(new java.net.SocketTimeoutException("timeout"));
+        });
         String result = executor.execute("Weather", "{\"city\":\"北京\"}");
         assertTrue(result.contains("网络不可用"), "实际: " + result);
     }
