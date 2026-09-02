@@ -2,6 +2,7 @@ package com.smartservice.admin;
 
 import com.smartservice.api.ApiResponse;
 import com.smartservice.audit.AuditLogger;
+import com.smartservice.memory.SessionManager;
 import com.smartservice.memory.SessionTracker;
 import com.smartservice.metrics.AgentMetrics;
 import com.smartservice.orchestrator.LlmClient;
@@ -36,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 public class AdminController {
 
     private final SessionTracker sessionTracker;
+    private final SessionManager sessionManager;
     private final RouterAgent routerAgent;
     private final MeterRegistry registry;
     private final LlmClient llmClient;
@@ -61,7 +63,8 @@ public class AdminController {
                                                           HttpServletRequest request) {
         long start = System.currentTimeMillis();
         String operator = (String) request.getAttribute(JwtAuthInterceptor.ATTR_USERNAME);
-        sessionTracker.remove(sessionId);
+        sessionTracker.remove(sessionId);          // 清索引（后台列表）
+        sessionManager.clearSession(sessionId);    // 清对话数据（避免历史复活）
         auditLogger.success("admin.session.delete", operator, "session=" + sessionId, start);
         return ApiResponse.success(Map.of("status", "deleted", "sessionId", sessionId));
     }

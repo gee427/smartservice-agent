@@ -14,14 +14,31 @@ class ToolExecutorTest {
 
     @Test
     void weather_knownCity() throws Exception {
+        // 注入假抓取器：geocoding 返回北京坐标，forecast 返回 WMO code=3（阴）
+        executor.setHttpFetcher(url -> url.contains("geocoding-api")
+                ? "{\"results\":[{\"name\":\"北京\",\"latitude\":39.9,\"longitude\":116.4,\"country\":\"中国\"}]}"
+                : "{\"current\":{\"temperature_2m\":23.5,\"wind_speed_10m\":12.0,\"weather_code\":3}}");
         String result = executor.execute("Weather", "{\"city\":\"北京\"}");
-        assertEquals("晴，25°C，北风2级", result);
+        assertTrue(result.contains("北京"), "实际: " + result);
+        assertTrue(result.contains("阴"), "WMO 映射错误: " + result);
+        assertTrue(result.contains("24°C"), "实际: " + result);
+        assertTrue(result.contains("风速 12 km/h"), "实际: " + result);
     }
 
     @Test
     void weather_unknownCity() throws Exception {
+        // geocoding 返回空 results -> 未找到城市
+        executor.setHttpFetcher(url -> url.contains("geocoding-api") ? "{\"results\":[]}" : "{}");
         String result = executor.execute("Weather", "{\"city\":\"火星\"}");
-        assertTrue(result.contains("暂无"));
+        assertTrue(result.contains("未找到城市"), "实际: " + result);
+    }
+
+    @Test
+    void weather_networkDown() throws Exception {
+        // 抓取器抛网络异常 -> 优雅降级为「网络不可用」
+        executor.setHttpFetcher(url -> { throw new RuntimeException(new java.net.SocketTimeoutException("timeout")); });
+        String result = executor.execute("Weather", "{\"city\":\"北京\"}");
+        assertTrue(result.contains("网络不可用"), "实际: " + result);
     }
 
     @Test
