@@ -94,6 +94,10 @@ public class LlmClient {
     @Value("${agent.llm.model:qwen3vl-8b-uncensored-hauhaucs-aggressive}")
     private String model;
 
+    /** LM Studio 本地服务若设了 Server API Key，请求必须带 Authorization: Bearer；为空则不发（本地开发留空也可）*/
+    @Value("${agent.llm.api-key:}")
+    private String apiKey;
+
     /**
      * 普通对话，返回最终文本
      */
@@ -195,9 +199,13 @@ public class LlmClient {
         // choices=[] + usage:{prompt/completion/total_tokens} 的结束块
         requestBody.put("stream_options", Map.of("include_usage", true));
 
-        HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/chat/completions"))
+        HttpRequest.Builder reqBuilder = HttpRequest.newBuilder(URI.create(baseUrl + "/chat/completions"))
             .header("Content-Type", "application/json")
-            .timeout(java.time.Duration.ofSeconds(15))
+            .timeout(java.time.Duration.ofSeconds(15));
+        if (apiKey != null && !apiKey.isBlank()) {
+            reqBuilder = reqBuilder.header("Authorization", "Bearer " + apiKey);
+        }
+        HttpRequest request = reqBuilder
             .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(requestBody)))
             .build();
 
