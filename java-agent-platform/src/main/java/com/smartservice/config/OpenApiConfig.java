@@ -28,7 +28,7 @@ public class OpenApiConfig {
         return new OpenAPI()
             .info(new Info()
                 .title("SmartService Agent Platform API")
-                .description("多 Agent 智能客服平台 REST API（P0~P3 渐进式实现：SSE 流式 / 会话持久化 / JWT 认证 / 限流 / 状态机 / 监控指标）")
+                .description("SmartService 本地 AI 聊天平台 REST API（SSE 流式 / 会话持久化 / 通用对话 + 天气/计算工具路由 / JWT 认证 / 限流 / 监控指标）")
                 .version("1.0.0")
                 .contact(new Contact().name("SmartService-Agent")))
             .components(new Components()

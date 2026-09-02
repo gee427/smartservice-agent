@@ -1,7 +1,6 @@
 package com.smartservice.orchestrator;
 
 import com.smartservice.metrics.AgentMetrics;
-import com.smartservice.workflow.ReturnProcessWorkflow;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -18,7 +17,6 @@ import java.util.List;
 public class AgentOrchestrator {
 
     private final RouterAgent routerAgent;
-    private final ReturnProcessWorkflow returnProcessWorkflow;
     private final AgentMetrics agentMetrics;
     private final LlmClient llmClient;
 

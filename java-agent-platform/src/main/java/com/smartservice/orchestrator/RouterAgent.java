@@ -7,24 +7,22 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Day 9-10 + P0-2: 路由 Agent
- * 基于 LLM 的意图分类，分发到差异化业务 Agent（Spring 注入注册表）
+ * Day 9-10 + P0-2: 路由 Agent（轻量路由版）
+ * 本地 AI 聊天平台定位（2026-09-02 去客服化改造）：
+ * 仅保留两个确定性工具意图（天气 / 计算）关键词直连，
+ * 其余消息 100% 走通用 AI 助手（CHAT），聊天不被业务域局限。
+ * 不再做 LLM 意图分类：省一次 LLM 往返，行为完全确定。
  */
 @Slf4j
 @Component
 public class RouterAgent {
 
-    private final LlmClient llmClient;
     private final Map<String, BusinessAgent> agentRegistry;
 
     /**
-     * 意图代码 → Agent bean 名映射
+     * 意图代码 → Agent bean 名映射（仅保留工具 + 通用对话）
      */
     private static final Map<String, String> INTENT_TO_AGENT = Map.of(
-        "FAQ", "faqAgent",
-        "TECH", "techAgent",
-        "SALES", "salesAgent",
-        "RETURN", "returnAgent",
         "WEATHER", "weatherAgent",
         "CALC", "calcAgent",
         "CHAT", "chatAgent"
@@ -33,8 +31,7 @@ public class RouterAgent {
     /**
      * Spring 自动注入所有 BusinessAgent 实现（key = bean 名）
      */
-    public RouterAgent(LlmClient llmClient, Map<String, BusinessAgent> agents) {
-        this.llmClient = llmClient;
+    public RouterAgent(Map<String, BusinessAgent> agents) {
         this.agentRegistry = agents;
         log.info("Registered business agents: {}", agents.keySet());
     }
@@ -74,66 +71,37 @@ public class RouterAgent {
     }
 
     /**
-     * 根据意图解析对应业务 Agent（未知意图回退 FAQ）
+     * 根据意图解析对应业务 Agent（未知意图回退通用对话 CHAT）
      */
     public BusinessAgent resolveAgent(String intent) {
-        String agentName = INTENT_TO_AGENT.getOrDefault(intent, "faqAgent");
+        String agentName = INTENT_TO_AGENT.getOrDefault(intent, "chatAgent");
         BusinessAgent agent = agentRegistry.get(agentName);
-        return agent != null ? agent : agentRegistry.get("faqAgent");
+        return agent != null ? agent : agentRegistry.get("chatAgent");
     }
 
     /**
-     * 使用 LLM 进行意图分类
-     * 前置规则：确定性关键词直接命中意图（不依赖 LLM 稳定性），LLM 只兜底模糊场景
-     * 说明：LLM 对中文意图分类存在漂移（同一句话可能今天判 FAQ 明天判 RETURN），
-     * 关键意图（天气/计算/退货流程/FAQ 知识词）用规则钉死，测试与线上行为才稳定。
+     * 确定性关键词路由：
+     * - 天气 / 计算：强意图词直连，不依赖 LLM（与线上行为一致、测试稳定）
+     * - 其余：一律 CHAT（通用 AI 助手），不拦截、不引导业务
      */
     private String classifyIntent(String message) {
         String msg = message == null ? "" : message;
 
-        // ---- 规则前置（确定性）----
-        if (msg.contains("天气")) {
+        // 天气查询（气象强词，误伤普通聊天的概率低）
+        if (msg.contains("天气") || msg.contains("气温") || msg.contains("下雨")
+            || msg.contains("降雨") || msg.contains("下雪") || msg.contains("降雪")
+            || msg.contains("预报") || msg.contains("台风")) {
             return "WEATHER";
         }
-        // 计算：含"计算"，或含数字 +（等于/多少/运算符号）
+        // 数学计算（明确说"计算"，或 数字 +（等于/乘号等运算语义）；
+        // 刻意排除 "-" "/"（日期 2026-09-02、分数 1/2 易误判），聊天自由优先）
         if (msg.contains("计算")
-            || (msg.matches(".*[0-9].*") && (msg.contains("等于") || msg.contains("多少")
-                || msg.contains("+") || msg.contains("-") || msg.contains("*") || msg.contains("/") || msg.contains("×")))) {
+            || (msg.matches(".*[0-9].*") && (msg.contains("等于")
+                || msg.contains("+") || msg.contains("*") || msg.contains("×")
+                || msg.contains("除以") || msg.contains("乘以")))) {
             return "CALC";
         }
-        // 退货/售后：办理流程语义（问订单号 → 原因 → 确认 → 提交）
-        if (msg.contains("退货") || msg.contains("退款") || msg.contains("售后")) {
-            return "RETURN";
-        }
-        // FAQ 知识库词（纯知识咨询，无流程歧义）
-        if (msg.contains("保修") || msg.contains("发货") || msg.contains("发票") || msg.contains("运费")) {
-            return "FAQ";
-        }
 
-        // ---- LLM 兜底（模糊场景）----
-        try {
-            String prompt = "请判断以下用户问题的意图类别，只返回类别代码（大写）：\n"
-                + "- FAQ: 常见问题（产品使用、参数、功能咨询）\n"
-                + "- TECH: 技术问题（故障排查、报错、维修）\n"
-                + "- SALES: 销售咨询（价格、购买、优惠、配件）\n"
-                + "- RETURN: 退货/售后流程\n"
-                + "- WEATHER: 天气查询\n"
-                + "- CALC: 数学计算\n"
-                + "- CHAT: 闲聊/问候\n\n"
-                + "用户问题：" + message + "\n\n"
-                + "意图类别：";
-
-            String result = llmClient.chatFast(
-                List.of(Map.of("role", "user", "content", prompt)), 0.3, 50
-            ).trim().toUpperCase();
-
-            return switch (result) {
-                case "FAQ", "TECH", "SALES", "RETURN", "WEATHER", "CALC", "CHAT" -> result;
-                default -> "FAQ";
-            };
-        } catch (Exception e) {
-            log.warn("Intent classification failed, fallback to FAQ: {}", e.getMessage());
-        }
-        return "FAQ";
+        return "CHAT";
     }
 }

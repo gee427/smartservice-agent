@@ -25,7 +25,7 @@ public class WeatherAgent extends AbstractLlmAgent {
 
     @Override
     protected String systemPrompt() {
-        return "你是智能客服平台的天气助手。"
+        return "你是 SmartService 本地 AI 助手中的天气查询助手。"
             + "当用户询问某个城市的天气时，你必须调用 Weather 工具查询，"
             + "绝对禁止自己编造天气信息，以工具返回的结果为准回答；"
             + "如果用户没有说明城市，先询问是哪个城市，不要调用工具。用中文回答。";

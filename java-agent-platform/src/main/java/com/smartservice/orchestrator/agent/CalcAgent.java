@@ -24,7 +24,7 @@ public class CalcAgent extends AbstractLlmAgent {
 
     @Override
     protected String systemPrompt() {
-        return "你是智能客服平台的计算助手。"
+        return "你是 SmartService 本地 AI 助手中的数学计算助手。"
             + "当用户提出任何数学计算需求时，你必须调用 Calculator 工具完成计算，"
             + "绝对禁止自己心算或凭经验直接给出结果；"
             + "以工具返回的结果为准组织回答，并给出简明中文说明。";
