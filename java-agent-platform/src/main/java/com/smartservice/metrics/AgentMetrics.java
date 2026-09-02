@@ -57,7 +57,7 @@ public class AgentMetrics {
             .register(registry);
 
         this.tokenCounter = Counter.builder("agent.tokens.total")
-            .description("Total tokens consumed (estimate)")
+            .description("Total tokens consumed (real usage from LM Studio responses)")
             .register(registry);
 
         this.streamCounter = Counter.builder("agent.requests.stream.total")

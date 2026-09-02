@@ -35,6 +35,35 @@ import java.util.function.Consumer;
 public class LlmClient {
 
     /**
+     * 请求级真实 token 累计器（ThreadLocal：每个用户请求线程独立计数）。
+     * 由 AgentOrchestrator 在请求入口 beginTokenAccumulate()、出口 endTokenAccumulate()，
+     * LlmClient 内部每次拿到 LLM 响应 usage.total_tokens 就累加。
+     * 语义：一次用户请求内所有 LLM 调用（意图分类/工具循环多轮/流式回答）的真实消耗总和，
+     * 替换早期 message.length()/2 字符估算（只算当轮输入、漏掉历史上下文与输出 token）。
+     */
+    private final ThreadLocal<Long> tokenAccumulator = new ThreadLocal<>();
+
+    /** 请求开始：清零本次请求的 token 累计 */
+    public void beginTokenAccumulate() {
+        tokenAccumulator.set(0L);
+    }
+
+    /** 请求结束：取出累计的真实 token 总数并清理（重复调用返回 0，安全） */
+    public int endTokenAccumulate() {
+        Long v = tokenAccumulator.get();
+        tokenAccumulator.remove();
+        return v == null ? 0 : v.intValue();
+    }
+
+    /** 内部：累加一次 LLM 响应的真实 total_tokens（无累计上下文时忽略，如健康探测） */
+    private void addTokens(long tokens) {
+        Long cur = tokenAccumulator.get();
+        if (cur != null && tokens > 0) {
+            tokenAccumulator.set(cur + tokens);
+        }
+    }
+
+    /**
      * RestTemplate 显式配置超时：LLM 服务无响应时必须快速失败，而不是无限挂起
      * fast：意图分类等低延迟场景（5s）；默认：对话生成（20s）
      * tool：工具调用链路专用（60s）——qwen3vl 等 reasoning 模型拿到工具结果后
@@ -162,6 +191,9 @@ public class LlmClient {
         requestBody.put("temperature", temperature);
         requestBody.put("max_tokens", maxTokens);
         requestBody.put("stream", true);
+        // 请求流式响应的真实 usage：llama.cpp 在 [DONE] 前补发一个
+        // choices=[] + usage:{prompt/completion/total_tokens} 的结束块
+        requestBody.put("stream_options", Map.of("include_usage", true));
 
         HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + "/chat/completions"))
             .header("Content-Type", "application/json")
@@ -193,9 +225,18 @@ public class LlmClient {
                     break;
                 }
                 JsonNode node = objectMapper.readTree(data);
-                JsonNode delta = node.path("choices").get(0).path("delta").path("content");
-                if (!delta.isMissingNode() && !delta.isNull() && !delta.asText().isEmpty()) {
-                    onToken.accept(delta.asText());
+                // usage 结束块：choices 为空数组、带 usage 字段，读真实 token 并累计
+                JsonNode usage = node.path("usage");
+                if (usage.isObject() && usage.path("total_tokens").isNumber()) {
+                    addTokens(usage.path("total_tokens").asLong());
+                }
+                // content 块才有 choices 内容；usage 结束块 choices=[] 需跳过，避免 get(0) NPE
+                JsonNode choices = node.path("choices");
+                if (choices.isArray() && !choices.isEmpty()) {
+                    JsonNode delta = choices.get(0).path("delta").path("content");
+                    if (!delta.isMissingNode() && !delta.isNull() && !delta.asText().isEmpty()) {
+                        onToken.accept(delta.asText());
+                    }
                 }
             }
         }
@@ -341,6 +382,15 @@ public class LlmClient {
             Map<String, Object> body = rawResponse.getBody();
             if (body == null || !body.containsKey("choices")) {
                 return null;
+            }
+
+            // 真实 token 统计：OpenAI 兼容响应带 usage:{prompt_tokens,completion_tokens,total_tokens}
+            Object usageObj = body.get("usage");
+            if (usageObj instanceof Map<?, ?> usageMap) {
+                Object total = usageMap.get("total_tokens");
+                if (total instanceof Number n) {
+                    addTokens(n.longValue());
+                }
             }
 
             List<Map<String, Object>> choices = (List<Map<String, Object>>) body.get("choices");
