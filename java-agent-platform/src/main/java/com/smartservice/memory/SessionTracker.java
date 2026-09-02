@@ -65,6 +65,25 @@ public class SessionTracker {
     }
 
     /**
+     * 统计最近 windowMs 毫秒内有活动的会话数（按 lastActive 时间戳过滤）。
+     * 供 "活跃会话" 指标使用：语义 = Redis 索引中最近 24h 有消息活动的会话数，
+     * 服务重启不丢、随时间自然衰减（区别于进程内只增不减的计数器）。
+     */
+    @SuppressWarnings("unchecked")
+    public long countActiveSince(long windowMs) {
+        long cutoff = System.currentTimeMillis() - windowMs;
+        long active = 0;
+        for (Object v : redisTemplate.opsForHash().entries(INDEX_KEY).values()) {
+            if (v instanceof Map<?, ?> m && m.get("lastActive") instanceof Number n) {
+                if (n.longValue() >= cutoff) {
+                    active++;
+                }
+            }
+        }
+        return active;
+    }
+
+    /**
      * 移除会话索引（清空会话时同步清理）
      */
     public void remove(String sessionId) {

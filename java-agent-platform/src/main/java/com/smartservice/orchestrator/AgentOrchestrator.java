@@ -81,7 +81,8 @@ public class AgentOrchestrator {
         }
 
         long latency = System.currentTimeMillis() - startTime;
-        agentMetrics.recordStream(intent, chars.get(), latency);
+        // token 估算口径与普通 /chat 路径一致：输入消息字符数 / 2
+        agentMetrics.recordStream(intent, chars.get(), latency, message.length() / 2);
         log.info("Streamed: intent={}, latency={}ms, chars={}", intent, latency, chars.get());
         return intent;
     }

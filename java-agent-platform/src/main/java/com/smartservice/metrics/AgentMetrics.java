@@ -1,5 +1,6 @@
 package com.smartservice.metrics;
 
+import com.smartservice.memory.SessionTracker;
 import io.micrometer.core.instrument.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -20,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *   agent.stream.chars.total            SSE 累计输出字符数（P3-4 新增）
  *   agent.tokens.total                  Token 消耗估计
  *   agent.response.time                 响应时间直方图（ms）
- *   agent.sessions.active               活跃会话数
+ *   agent.sessions.active               活跃会话数（Redis 索引最近 24h 有活动）
  *   agent.rate.limited.total            限流触发总数（P3-4 新增）
  *   agent.rate.limited.by.resource      按资源(chat/login)限流分布（P3-4 新增）
  *   agent.redis.up / agent.llm.up       服务健康状态 0/1（P3-4 新增，供 Prometheus 规则告警）
@@ -30,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AgentMetrics {
 
     private final MeterRegistry registry;
+    private final SessionTracker sessionTracker;
     private final Counter requestCounter;
     private final Counter errorCounter;
     private final Counter tokenCounter;
@@ -37,12 +39,15 @@ public class AgentMetrics {
     private final Counter streamCharsCounter;
     private final Counter rateLimitedCounter;
     private final Timer responseTimer;
-    private final AtomicInteger activeSessions;
     private final AtomicInteger redisUpGauge;
     private final AtomicInteger llmUpGauge;
 
-    public AgentMetrics(MeterRegistry registry) {
+    /** 活跃会话统计窗口：24h（与后台"会话列表"的运营口径一致） */
+    private static final long ACTIVE_WINDOW_MS = 24 * 60 * 60 * 1000L;
+
+    public AgentMetrics(MeterRegistry registry, SessionTracker sessionTracker) {
         this.registry = registry;
+        this.sessionTracker = sessionTracker;
         this.requestCounter = Counter.builder("agent.requests.total")
             .description("Total agent requests")
             .register(registry);
@@ -71,9 +76,12 @@ public class AgentMetrics {
             .description("Agent response time in ms")
             .register(registry);
 
-        this.activeSessions = new AtomicInteger(0);
-        Gauge.builder("agent.sessions.active", activeSessions, AtomicInteger::get)
-            .description("Active sessions")
+        // 活跃会话：每次读取实时统计 Redis 索引中最近 24h 有活动的会话数。
+        // 语义修正：以前用进程内 AtomicInteger 只增不减（decrement 无调用方），
+        // 数字实为"启动以来聊天调用次数"；现在随会话活动自然增减、重启不丢。
+        Gauge.builder("agent.sessions.active", sessionTracker,
+                st -> st.countActiveSince(ACTIVE_WINDOW_MS))
+            .description("Active sessions (Redis index, last 24h)")
             .register(registry);
 
         // 服务健康 0/1：由 AdminController.health() 每次评估后刷新，
@@ -106,8 +114,17 @@ public class AgentMetrics {
         }
     }
 
-    /** P3-4: SSE 流式请求指标 */
-    public void recordStream(String agentType, int chars, long latencyMs) {
+    /**
+     * P3-4: SSE 流式请求指标
+     * 流式与普通请求同口径：计入总请求数、意图分布与 Token 消耗估算
+     */
+    public void recordStream(String agentType, int chars, long latencyMs, int tokenCount) {
+        // 流式请求同样计入总请求数与意图分布（否则前端只用 /chat/stream 时
+        // agent.requests.total / agent.requests.by.intent 永远为 0）
+        requestCounter.increment();
+        registry.counter("agent.requests.by.intent", "intent", agentType).increment();
+
+        tokenCounter.increment(tokenCount);
         streamCounter.increment();
         streamCharsCounter.increment(chars);
         registry.counter("agent.streams.by.intent", "intent", agentType).increment();
@@ -124,13 +141,5 @@ public class AgentMetrics {
     public void updateServiceHealth(boolean redisUp, boolean llmUp) {
         redisUpGauge.set(redisUp ? 1 : 0);
         llmUpGauge.set(llmUp ? 1 : 0);
-    }
-
-    public void incrementActiveSessions() {
-        activeSessions.incrementAndGet();
-    }
-
-    public void decrementActiveSessions() {
-        activeSessions.decrementAndGet();
     }
 }

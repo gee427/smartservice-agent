@@ -3,7 +3,6 @@ package com.smartservice.orchestrator;
 import com.smartservice.api.ApiResponse;
 import com.smartservice.memory.SessionManager;
 import com.smartservice.memory.SessionTracker;
-import com.smartservice.metrics.AgentMetrics;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -30,7 +29,6 @@ import java.util.concurrent.Executor;
 public class AgentController {
 
     private final AgentOrchestrator orchestrator;
-    private final AgentMetrics agentMetrics;
     private final SessionManager sessionManager;
     private final SessionTracker sessionTracker;
     private final Executor taskExecutor;
@@ -42,8 +40,6 @@ public class AgentController {
     public ApiResponse<ChatResponse> chat(@Valid @RequestBody ChatRequest request) {
         String sessionId = request.sessionId() != null ? request.sessionId() :
                           java.util.UUID.randomUUID().toString();
-
-        agentMetrics.incrementActiveSessions();
 
         // 读取该会话历史（交替字符串），传入编排器作为多轮上下文
         List<String> history = sessionManager.getHistory(sessionId);
@@ -71,7 +67,6 @@ public class AgentController {
     public SseEmitter chatStream(@Valid @RequestBody ChatRequest request) {
         String sessionId = request.sessionId() != null ? request.sessionId() :
                           java.util.UUID.randomUUID().toString();
-        agentMetrics.incrementActiveSessions();
 
         SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
 
