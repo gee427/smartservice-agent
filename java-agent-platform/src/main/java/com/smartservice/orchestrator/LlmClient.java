@@ -337,6 +337,9 @@ public class LlmClient {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            if (apiKey != null && !apiKey.isBlank()) {
+                headers.setBearerAuth(apiKey);
+            }
 
             Map<String, Object> body = new HashMap<>();
             body.put("model", model);
@@ -369,6 +372,9 @@ public class LlmClient {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            if (apiKey != null && !apiKey.isBlank()) {
+                headers.setBearerAuth(apiKey);
+            }
 
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", model);
