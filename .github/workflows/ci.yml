@@ -40,7 +40,8 @@ jobs:
   # ============ 2. java-agent-platform：编译 + 测试 + 覆盖率 ============
   # 集成测试依赖真实 Redis（@SpringBootTest + RedisTemplate），
   # 通过 services 启动 Redis 容器并等待健康检查通过
-  # 测试全部走 FAQ 关键词直查路径，不依赖 LM Studio
+  # 2026-09-02 去客服化后：对话用例均为确定性路径（空消息校验/限流计数），
+  # SSE 用例在 LLM down 时输出占位文本但结构断言仍过 → 不依赖 LM Studio
   test-java-platform:
     name: Java Platform (build + test + coverage)
     runs-on: ubuntu-latest

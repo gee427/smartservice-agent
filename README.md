@@ -30,8 +30,8 @@ SmartService-Agent/
 │   ├── src/main/java/com/smartservice/
 │   │   ├── api/               # REST API + 统一响应/异常
 │   │   ├── auth/              # P2-1 认证（JWT + BCrypt）
-│   │   ├── orchestrator/      # Agent 编排 + 7 个业务 Agent
-│   │   ├── workflow/          # 状态机工作流
+│   │   ├── orchestrator/      # Agent 编排 + 轻量路由（通用对话/天气/计算）
+│   │   ├── workflow/          # （客服退货状态机已下线，目录保留）
 │   │   ├── metrics/           # P3-4 监控指标 + P3-3 健康组件
 │   │   ├── audit/             # P4-4 审计日志
 │   │   ├── ratelimit/         # P2-2 限流

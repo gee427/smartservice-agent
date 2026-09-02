@@ -181,7 +181,7 @@ Content-Type: application/json
 {
   "userId": "user_002",
   "sessionId": "sess_002",
-  "message": "你们支持退货吗"
+  "message": "帮我写一句中秋祝福"
 }
 
 ### 26. 统一健康探针（P3-3，免认证，含 redis/llm 组件；LLM 挂时整体 503）

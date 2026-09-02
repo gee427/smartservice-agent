@@ -96,7 +96,7 @@ curl http://localhost:8080/api/admin/health       # 无 token → 40100（JWT �
 
 - 三个测试 Job **并行**执行，Docker Job 依赖两个 Java Job 全部通过。
 - 同一分支连续推送自动取消旧工作流（`concurrency`），避免浪费配额。
-- 集成测试不依赖 LM Studio（走 FAQ 关键词直查路径），本地引擎挂了也能在 CI 稳定通过。
+- 对话用例均为确定性路径（空消息校验 / 限流计数 / 纯路由规则），SSE 用例在 LLM down 时输出占位文本但结构断言仍过，本地引擎挂了 CI 也能稳定通过。
 
 ### 5.2 本地模拟 CI（无需推送即可预检）
 

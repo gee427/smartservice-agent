@@ -16,9 +16,8 @@ graph TB
         CORS[WebMvc 配置<br/>拦截器: 限流→JWT→CORS]
         API[Controller 层<br/>Auth / Agent / Admin]
         ORCH[编排层 AgentOrchestrator]
-        ROUTER[RouterAgent 意图路由]
-        AGENTS[业务 Agent 群<br/>FAQ/Tech/Sales/Return/Weather/Calc/Chat]
-        WF[ReturnProcessWorkflow<br/>退货状态机]
+        ROUTER[RouterAgent 轻量路由<br/>天气/计算直连，其余→Chat]
+        AGENTS[业务 Agent<br/>Chat / Weather / Calc]
         METRICS[AgentMetrics 指标<br/>Micrometer]
         AUDIT[AuditLogger 审计]
         HEALTH[LlmHealthIndicator<br/>/actuator/health]
@@ -37,7 +36,6 @@ graph TB
     API --> ORCH
     ORCH --> ROUTER
     ROUTER --> AGENTS
-    AGENTS --> WF
     AGENTS --> LLM
     AGENTS --> REDIS
     API --> METRICS
@@ -54,8 +52,7 @@ graph TB
 |---|---|---|
 | Controller | AuthController / AgentController / AdminController | 参数校验、统一响应体、SSE、JWT 上下文 |
 | 编排 | AgentOrchestrator / RouterAgent | 路由决策、统一执行、错误降级、指标埋点 |
-| 业务 Agent | FaqAgent / TechAgent / SalesAgent / ReturnAgent / WeatherAgent / CalcAgent / ChatAgent | 各自领域的应答逻辑 |
-| 工作流 | ReturnProcessWorkflow | 退货多轮状态机（有限状态、防循环） |
+| 业务 Agent | ChatAgent / WeatherAgent / CalcAgent | 通用对话（主）/ 天气查询 / 数学计算（工具）|
 | 安全 | AuthService / JwtUtil / JwtAuthInterceptor | BCrypt + JWT 签发校验 |
 | 基础设施 | SessionManager / LlmClient / RateLimitInterceptor / AuditLogger | 会话持久化、LLM 调用、限流、审计 |
 | 可观测 | AgentMetrics / LlmHealthIndicator | 指标、健康 |

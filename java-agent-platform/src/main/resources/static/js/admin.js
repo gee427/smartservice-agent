@@ -6,8 +6,7 @@
   const TOKEN_KEY = 'admin_token';
   const USER_KEY = 'admin_user';
   const INTENT_LABELS = {
-    FAQ: '常见问题', TECH: '技术支持', SALES: '销售咨询',
-    RETURN: '退货流程', WEATHER: '天气查询', CALC: '数学计算', CHAT: '闲聊'
+    WEATHER: '天气查询', CALC: '数学计算', CHAT: '通用对话'
   };
 
   let loginMode = 'login'; // login | register

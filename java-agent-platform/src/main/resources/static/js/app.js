@@ -34,10 +34,13 @@
     return bubble;
   }
 
+  // 意图代码 → 友好中文（后端返回 CHAT / WEATHER / CALC）
+  const INTENT_LABELS = { WEATHER: '天气查询', CALC: '数学计算', CHAT: '通用对话' };
+
   function showIntentTag(intent) {
     const tag = document.createElement('div');
     tag.className = 'intent-tag';
-    tag.textContent = '意图路由 → ' + intent;
+    tag.textContent = '意图路由 → ' + (INTENT_LABELS[intent] || intent);
     chatArea.appendChild(tag);
     chatArea.scrollTop = chatArea.scrollHeight;
   }
