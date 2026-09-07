@@ -71,7 +71,7 @@ jobs:
 
       - name: Upload JaCoCo coverage report
         if: always()              # 测试失败也保留覆盖率报告便于排查
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: jacoco-report
           path: java-agent-platform/target/site/jacoco/
